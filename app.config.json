@@ -1,6 +1,6 @@
 {
   "$schema": "./.dt-app/app.config.schema.json",
-  "environmentUrl": "https://xzj8412h.sprint.apps.dynatracelabs.com/",
+  "environmentUrl": "https://yhu28601.apps.dynatrace.com/",
   "app": {
     "name": "ESA Utilities",
     "version": "0.6.0",
