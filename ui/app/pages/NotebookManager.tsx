@@ -920,9 +920,27 @@ export const NotebookManager = () => {
                                 color: Colors.Text.Neutral.Default,
                               }}
                             >
-                              <Strong>
-                                {notebook.displayName || "Unnamed"}
-                              </Strong>
+                              <a
+                                href={`https://yhu28601.apps.dynatrace.com/ui/apps/dynatrace.notebooks/notebook/${notebook.id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  color: Colors.Text.Primary.Default,
+                                  textDecoration: "none",
+                                }}
+                                onMouseEnter={(e) =>
+                                  (e.currentTarget.style.textDecoration =
+                                    "underline")
+                                }
+                                onMouseLeave={(e) =>
+                                  (e.currentTarget.style.textDecoration =
+                                    "none")
+                                }
+                              >
+                                <Strong>
+                                  {notebook.displayName || "Unnamed"}
+                                </Strong>
+                              </a>
                             </td>
                             <td
                               style={{
