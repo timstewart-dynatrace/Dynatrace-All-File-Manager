@@ -1,7 +1,7 @@
 {
   "name": "esa-utilities",
-  "version": "0.0.0",
-  "description": "A starting project with routing, fetching data, and charting",
+  "version": "0.6.0",
+  "description": "A collection of utilities for Dynatrace ESA Team",
   "scripts": {
     "build": "dt-app build",
     "start": "dt-app dev",

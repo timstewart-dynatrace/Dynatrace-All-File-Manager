@@ -1,10 +1,10 @@
 {
   "$schema": "./.dt-app/app.config.schema.json",
-  "environmentUrl": "https://xzj8412h.sprint.apps.dynatracelabs.com/",
+  "environmentUrl": "https://yhu28601.apps.dynatrace.com/",
   "app": {
     "name": "ESA Utilities",
-    "version": "0.5.0",
-    "description": "A starting project with routing, fetching data, and charting",
+    "version": "0.6.0",
+    "description": "A collection of utilities for Dynatrace ESA Team",
     "id": "my.esa.utilities",
     "scopes": [
       { "name": "storage:logs:read", "comment": "default template" },

@@ -22,13 +22,12 @@ export const Home = () => {
         style={{ paddingBottom: 32 }}
       ></img>
 
-      <Heading>Welcome To Your Dynatrace App</Heading>
+      <Heading>Welcome To ESA Utilities for Dynatrace App</Heading>
       <Paragraph>
         Edit <Strong>ui/app/pages/Home.tsx</Strong> and save to reload the app.
       </Paragraph>
       <Paragraph>
-        For more information and help on app development, check out the
-        following:
+    A collection of utilities for Dynatrace ESA Team
       </Paragraph>
 
       <Flex gap={48} paddingTop={64} flexFlow="wrap">
