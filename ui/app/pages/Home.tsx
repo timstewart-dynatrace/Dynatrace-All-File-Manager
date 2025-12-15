@@ -8,6 +8,7 @@ import {
   Strong,
 } from "@dynatrace/strato-components/typography";
 import { Card } from "../components/Card";
+import { APP_VERSION } from "../constants";
 
 export const Home = () => {
   const theme = useCurrentTheme();
@@ -49,25 +50,10 @@ export const Home = () => {
           }
           name="Notebook Manager"
         />
-        <Card
-          href="https://dt-url.net/developers"
-          imgSrc={
-            theme === "light"
-              ? "./assets/devportal.png"
-              : "./assets/devportal_dark.png"
-          }
-          name="Dynatrace Developer"
-        />
-        <Card
-          href="https://dt-url.net/devcommunity"
-          imgSrc={
-            theme === "light"
-              ? "./assets/community.png"
-              : "./assets/community_dark.png"
-          }
-          name="Developer Community"
-        />
       </Flex>
+      <Paragraph style={{ marginTop: 48, opacity: 0.6 }}>
+        Version {APP_VERSION}
+      </Paragraph>
     </Flex>
   );
 };

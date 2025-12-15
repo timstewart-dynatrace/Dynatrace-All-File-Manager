@@ -3,12 +3,15 @@
   "environmentUrl": "https://xzj8412h.sprint.apps.dynatracelabs.com/",
   "app": {
     "name": "ESA Utilities",
-    "version": "0.1.0",
+    "version": "0.5.0",
     "description": "A starting project with routing, fetching data, and charting",
     "id": "my.esa.utilities",
     "scopes": [
       { "name": "storage:logs:read", "comment": "default template" },
-      { "name": "storage:buckets:read", "comment": "default template" }
+      { "name": "storage:buckets:read", "comment": "default template" },
+      { "name": "document:documents:read", "comment": "Read notebooks via Document API" },
+      { "name": "document:documents:write", "comment": "Create notebooks via Document API" },
+      { "name": "document:documents:delete", "comment": "Delete notebooks via Document API" }
     ]
   }
 }
