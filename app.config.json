@@ -3,7 +3,7 @@
   "environmentUrl": "https://xzj8412h.sprint.apps.dynatracelabs.com/",
   "app": {
     "name": "ESA Utilities",
-    "version": "0.0.0",
+    "version": "0.1.0",
     "description": "A starting project with routing, fetching data, and charting",
     "id": "my.esa.utilities",
     "scopes": [

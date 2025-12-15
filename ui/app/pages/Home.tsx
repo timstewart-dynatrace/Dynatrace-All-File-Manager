@@ -40,6 +40,16 @@ export const Home = () => {
           name="Explore data"
         />
         <Card
+          href="/notebook-manager"
+          inAppLink
+          imgSrc={
+            theme === "light"
+              ? "./assets/notebook.svg"
+              : "./assets/notebook_dark.svg"
+          }
+          name="Notebook Manager"
+        />
+        <Card
           href="https://dt-url.net/developers"
           imgSrc={
             theme === "light"
