@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <rect x="10" y="10" width="80" height="80" rx="4" fill="#1496FF" stroke="#0A76D0" stroke-width="2"/>
+  <!-- Top left chart -->
+  <rect x="18" y="18" width="28" height="28" rx="2" fill="white"/>
+  <rect x="22" y="38" width="4" height="4" fill="#0A76D0"/>
+  <rect x="28" y="32" width="4" height="10" fill="#0A76D0"/>
+  <rect x="34" y="26" width="4" height="16" fill="#0A76D0"/>
+  <rect x="40" y="22" width="4" height="20" fill="#0A76D0"/>
+  <!-- Top right chart -->
+  <rect x="54" y="18" width="28" height="28" rx="2" fill="white"/>
+  <circle cx="68" cy="32" r="10" fill="none" stroke="#0A76D0" stroke-width="4"/>
+  <path d="M68 22 L68 32 L78 32" stroke="white" stroke-width="3"/>
+  <!-- Bottom left number -->
+  <rect x="18" y="54" width="28" height="28" rx="2" fill="white"/>
+  <rect x="22" y="58" width="20" height="4" rx="1" fill="#0A76D0"/>
+  <rect x="22" y="66" width="16" height="8" rx="1" fill="#0A76D0"/>
+  <!-- Bottom right chart -->
+  <rect x="54" y="54" width="28" height="28" rx="2" fill="white"/>
+  <polyline points="58,78 66,68 72,74 78,62" fill="none" stroke="#0A76D0" stroke-width="3" stroke-linecap="round"/>
+</svg>

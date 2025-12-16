@@ -49,6 +49,16 @@ export const Home = () => {
           }
           name="Notebook Manager"
         />
+        <Card
+          href="/dashboard-manager"
+          inAppLink
+          imgSrc={
+            theme === "light"
+              ? "./assets/dashboard.svg"
+              : "./assets/dashboard_dark.svg"
+          }
+          name="Dashboard Manager"
+        />
       </Flex>
       <Paragraph style={{ marginTop: 48, opacity: 0.6 }}>
         Version {APP_VERSION}

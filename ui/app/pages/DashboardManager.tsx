@@ -27,7 +27,7 @@ type SortField =
   | "isPublic";
 type SortDirection = "asc" | "desc";
 
-interface Notebook {
+interface Dashboard {
   id: string;
   displayName: string;
   owner?: string;
@@ -41,24 +41,24 @@ interface Notebook {
 interface UploadResult {
   fileName: string;
   success: boolean;
-  notebookId?: string;
+  dashboardId?: string;
   error?: string;
 }
 
 interface ApiResponse {
   body?: {
-    notebooks?: Notebook[];
+    dashboards?: Dashboard[];
     debug?: unknown;
     message?: string;
   };
-  notebooks?: Notebook[];
+  dashboards?: Dashboard[];
   id?: string;
   message?: string;
 }
 
-export const NotebookManager = () => {
-  const [notebooks, setNotebooks] = useState<Notebook[]>([]);
-  const [selectedNotebooks, setSelectedNotebooks] = useState<Set<string>>(
+export const DashboardManager = () => {
+  const [dashboards, setDashboards] = useState<Dashboard[]>([]);
+  const [selectedDashboards, setSelectedDashboards] = useState<Set<string>>(
     new Set()
   );
   const [loading, setLoading] = useState(false);
@@ -73,22 +73,22 @@ export const NotebookManager = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [showOnlyMine, setShowOnlyMine] = useState(false);
 
-  // Filter and sort notebooks
-  const filteredAndSortedNotebooks = useMemo(() => {
-    let result = [...notebooks];
+  // Filter and sort dashboards
+  const filteredAndSortedDashboards = useMemo(() => {
+    let result = [...dashboards];
 
     // Apply "show only mine" filter
     if (showOnlyMine && currentUserId) {
-      result = result.filter((n) => n.owner === currentUserId);
+      result = result.filter((d) => d.owner === currentUserId);
     }
 
     // Apply text filter
     if (filterText.trim()) {
       const lowerFilter = filterText.toLowerCase();
       result = result.filter(
-        (n) =>
-          (n.displayName || "").toLowerCase().includes(lowerFilter) ||
-          (n.owner || "").toLowerCase().includes(lowerFilter)
+        (d) =>
+          (d.displayName || "").toLowerCase().includes(lowerFilter) ||
+          (d.owner || "").toLowerCase().includes(lowerFilter)
       );
     }
 
@@ -126,7 +126,7 @@ export const NotebookManager = () => {
     });
 
     return result;
-  }, [notebooks, filterText, sortField, sortDirection, showOnlyMine, currentUserId]);
+  }, [dashboards, filterText, sortField, sortDirection, showOnlyMine, currentUserId]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -142,11 +142,11 @@ export const NotebookManager = () => {
     return sortDirection === "asc" ? " ▲" : " ▼";
   };
 
-  const loadNotebooks = useCallback(async () => {
+  const loadDashboards = useCallback(async () => {
     setLoading(true);
     try {
-      console.log("Calling /api/notebooksList...");
-      const response = await fetch("/api/notebooksList", {
+      console.log("Calling /api/dashboardsList...");
+      const response = await fetch("/api/dashboardsList", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -157,20 +157,20 @@ export const NotebookManager = () => {
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Error response:", errorText);
-        throw new Error(`Failed to load notebooks: ${response.statusText}`);
+        throw new Error(`Failed to load dashboards: ${response.statusText}`);
       }
       const data = (await response.json()) as ApiResponse;
       console.log("Response data:", data);
 
-      // API returns { statusCode: 200, body: { notebooks: [...], total: N, debug: {...} } }
-      const notebookList: Notebook[] =
-        data.body?.notebooks || data.notebooks || [];
-      console.log("Notebooks array:", notebookList);
+      // API returns { statusCode: 200, body: { dashboards: [...], total: N, debug: {...} } }
+      const dashboardList: Dashboard[] =
+        data.body?.dashboards || data.dashboards || [];
+      console.log("Dashboards array:", dashboardList);
       console.log("API Debug info:", data.body?.debug);
-      setNotebooks(notebookList);
+      setDashboards(dashboardList);
     } catch (error) {
       showToast({
-        title: "Error loading notebooks",
+        title: "Error loading dashboards",
         message: error instanceof Error ? error.message : "Unknown error",
         type: "critical",
       });
@@ -180,7 +180,7 @@ export const NotebookManager = () => {
   }, []);
 
   useEffect(() => {
-    void loadNotebooks();
+    void loadDashboards();
     // Load current user info
     try {
       const userDetails = getCurrentUserDetails();
@@ -189,85 +189,85 @@ export const NotebookManager = () => {
     } catch (err) {
       console.error("Failed to get current user details:", err);
     }
-  }, [loadNotebooks]);
+  }, [loadDashboards]);
 
-  // Check if any selected notebook is not owned by current user
+  // Check if any selected dashboard is not owned by current user
   const hasNonOwnedSelected = useMemo(() => {
     if (!currentUserId) return false;
-    return Array.from(selectedNotebooks).some((id) => {
-      const notebook = notebooks.find((n) => n.id === id);
-      return notebook && notebook.owner !== currentUserId;
+    return Array.from(selectedDashboards).some((id) => {
+      const dashboard = dashboards.find((d) => d.id === id);
+      return dashboard && dashboard.owner !== currentUserId;
     });
-  }, [selectedNotebooks, notebooks, currentUserId]);
+  }, [selectedDashboards, dashboards, currentUserId]);
 
   const handleSelectAll = () => {
-    const allIds = filteredAndSortedNotebooks.map((n) => n.id);
-    const allSelected = allIds.every((id) => selectedNotebooks.has(id));
+    const allIds = filteredAndSortedDashboards.map((d) => d.id);
+    const allSelected = allIds.every((id) => selectedDashboards.has(id));
 
     if (allSelected && allIds.length > 0) {
       // Deselect all
-      const newSelected = new Set(selectedNotebooks);
+      const newSelected = new Set(selectedDashboards);
       allIds.forEach((id) => newSelected.delete(id));
-      setSelectedNotebooks(newSelected);
+      setSelectedDashboards(newSelected);
     } else {
       // Select all
-      const newSelected = new Set(selectedNotebooks);
+      const newSelected = new Set(selectedDashboards);
       allIds.forEach((id) => newSelected.add(id));
-      setSelectedNotebooks(newSelected);
+      setSelectedDashboards(newSelected);
     }
   };
 
-  const handleSelectNotebook = (id: string) => {
-    const newSelected = new Set(selectedNotebooks);
+  const handleSelectDashboard = (id: string) => {
+    const newSelected = new Set(selectedDashboards);
     if (newSelected.has(id)) {
       newSelected.delete(id);
     } else {
       newSelected.add(id);
     }
-    setSelectedNotebooks(newSelected);
+    setSelectedDashboards(newSelected);
   };
 
   const handleBulkDelete = async () => {
-    if (selectedNotebooks.size === 0) {
+    if (selectedDashboards.size === 0) {
       showToast({
-        title: "No notebooks selected",
-        message: "Please select at least one notebook to delete",
+        title: "No dashboards selected",
+        message: "Please select at least one dashboard to delete",
         type: "warning",
       });
       return;
     }
 
-    // Get the names of notebooks to be deleted for confirmation
-    const notebooksToDelete = notebooks.filter((n) =>
-      selectedNotebooks.has(n.id)
+    // Get the names of dashboards to be deleted for confirmation
+    const dashboardsToDelete = dashboards.filter((d) =>
+      selectedDashboards.has(d.id)
     );
-    const namesList = notebooksToDelete
-      .map((n) => `  • ${n.displayName || "Unnamed"}`)
+    const namesList = dashboardsToDelete
+      .map((d) => `  • ${d.displayName || "Unnamed"}`)
       .join("\n");
 
     if (
       !confirm(
-        `Are you sure you want to delete ${selectedNotebooks.size} notebook(s)? This action cannot be undone.\n\nNotebooks to delete:\n${namesList}`
+        `Are you sure you want to delete ${selectedDashboards.size} dashboard(s)? This action cannot be undone.\n\nDashboards to delete:\n${namesList}`
       )
     ) {
       return;
     }
 
     setDeleting(true);
-    const notebookIds = Array.from(selectedNotebooks);
+    const dashboardIds = Array.from(selectedDashboards);
     let successCount = 0;
     let failCount = 0;
 
     const deletedNames: string[] = [];
     const failedNames: string[] = [];
 
-    for (const id of notebookIds) {
-      const notebook = notebooks.find((n) => n.id === id);
-      const name = notebook?.displayName || id;
+    for (const id of dashboardIds) {
+      const dashboard = dashboards.find((d) => d.id === id);
+      const name = dashboard?.displayName || id;
 
       try {
-        console.log(`Deleting notebook: ${name} (${id})`);
-        const response = await fetch(`/api/notebooksDelete`, {
+        console.log(`Deleting dashboard: ${name} (${id})`);
+        const response = await fetch(`/api/dashboardsDelete`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -303,7 +303,7 @@ export const NotebookManager = () => {
     }
 
     setDeleting(false);
-    setSelectedNotebooks(new Set());
+    setSelectedDashboards(new Set());
 
     if (failCount === 0 && successCount > 0) {
       showToast({
@@ -328,8 +328,8 @@ export const NotebookManager = () => {
     }
 
     // Force refresh the list
-    console.log("Refreshing notebook list after delete...");
-    await loadNotebooks();
+    console.log("Refreshing dashboard list after delete...");
+    await loadDashboards();
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -340,17 +340,17 @@ export const NotebookManager = () => {
     }
   };
 
-  const uploadNotebook = async (file: File): Promise<UploadResult> => {
+  const uploadDashboard = async (file: File): Promise<UploadResult> => {
     try {
       const content = await file.text();
-      const notebookData: unknown = JSON.parse(content);
+      const dashboardData: unknown = JSON.parse(content);
 
-      const response = await fetch("/api/notebooks", {
+      const response = await fetch("/api/dashboards", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(notebookData),
+        body: JSON.stringify(dashboardData),
       });
 
       if (!response.ok) {
@@ -366,7 +366,7 @@ export const NotebookManager = () => {
       return {
         fileName: file.name,
         success: true,
-        notebookId: responseData.id,
+        dashboardId: responseData.id,
       };
     } catch (error) {
       return {
@@ -381,7 +381,7 @@ export const NotebookManager = () => {
     if (uploadFiles.length === 0) {
       showToast({
         title: "No files selected",
-        message: "Please select at least one notebook JSON file to upload",
+        message: "Please select at least one dashboard JSON file to upload",
         type: "critical",
       });
       return;
@@ -393,7 +393,7 @@ export const NotebookManager = () => {
     const results: UploadResult[] = [];
 
     for (const file of uploadFiles) {
-      const result = await uploadNotebook(file);
+      const result = await uploadDashboard(file);
       results.push(result);
       setUploadResults([...results]);
     }
@@ -406,7 +406,7 @@ export const NotebookManager = () => {
     if (failCount === 0) {
       showToast({
         title: "Upload complete",
-        message: `Successfully uploaded ${successCount} notebook(s)`,
+        message: `Successfully uploaded ${successCount} dashboard(s)`,
         type: "success",
       });
     } else {
@@ -417,22 +417,22 @@ export const NotebookManager = () => {
       });
     }
 
-    await loadNotebooks();
+    await loadDashboards();
   };
 
   const handleExportSelected = async () => {
-    if (selectedNotebooks.size === 0) {
+    if (selectedDashboards.size === 0) {
       showToast({
-        title: "No notebooks selected",
-        message: "Please select at least one notebook to export",
+        title: "No dashboards selected",
+        message: "Please select at least one dashboard to export",
         type: "warning",
       });
       return;
     }
 
-    for (const id of selectedNotebooks) {
+    for (const id of selectedDashboards) {
       try {
-        const response = await fetch(`/api/notebooksGet`, {
+        const response = await fetch(`/api/dashboardsGet`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -442,11 +442,11 @@ export const NotebookManager = () => {
         if (response.ok) {
           const responseData = await response.json() as { statusCode?: number; body?: unknown };
           // Extract the actual content from the API response wrapper
-          const notebookContent = responseData.body || responseData;
-          const notebook = notebooks.find((n) => n.id === id);
-          const fileName = `${notebook?.displayName || id}.json`;
+          const dashboardContent = responseData.body || responseData;
+          const dashboard = dashboards.find((d) => d.id === id);
+          const fileName = `${dashboard?.displayName || id}.json`;
 
-          const blob = new Blob([JSON.stringify(notebookContent, null, 2)], {
+          const blob = new Blob([JSON.stringify(dashboardContent, null, 2)], {
             type: "application/json",
           });
           const url = URL.createObjectURL(blob);
@@ -459,58 +459,58 @@ export const NotebookManager = () => {
           URL.revokeObjectURL(url);
         }
       } catch (error) {
-        console.error(`Failed to export notebook ${id}:`, error);
+        console.error(`Failed to export dashboard ${id}:`, error);
       }
     }
 
     showToast({
       title: "Export complete",
-      message: `Exported ${selectedNotebooks.size} notebook(s)`,
+      message: `Exported ${selectedDashboards.size} dashboard(s)`,
       type: "success",
     });
   };
 
   const handleBulkToggleVisibility = async (makePrivate: boolean) => {
-    if (selectedNotebooks.size === 0) {
+    if (selectedDashboards.size === 0) {
       showToast({
-        title: "No notebooks selected",
-        message: "Please select at least one notebook to update",
+        title: "No dashboards selected",
+        message: "Please select at least one dashboard to update",
         type: "warning",
       });
       return;
     }
 
     const action = makePrivate ? "private" : "public";
-    const notebooksToUpdate = notebooks.filter((n) =>
-      selectedNotebooks.has(n.id)
+    const dashboardsToUpdate = dashboards.filter((d) =>
+      selectedDashboards.has(d.id)
     );
-    const namesList = notebooksToUpdate
-      .map((n) => `  • ${n.displayName || "Unnamed"}`)
+    const namesList = dashboardsToUpdate
+      .map((d) => `  • ${d.displayName || "Unnamed"}`)
       .join("\n");
 
     if (
       !confirm(
-        `Are you sure you want to make ${selectedNotebooks.size} notebook(s) ${action}?\n\nNotebooks to update:\n${namesList}`
+        `Are you sure you want to make ${selectedDashboards.size} dashboard(s) ${action}?\n\nDashboards to update:\n${namesList}`
       )
     ) {
       return;
     }
 
     setToggling(true);
-    const notebookIds = Array.from(selectedNotebooks);
+    const dashboardIds = Array.from(selectedDashboards);
     let successCount = 0;
     let failCount = 0;
 
     const successNames: string[] = [];
     const failedNames: string[] = [];
 
-    for (const id of notebookIds) {
-      const notebook = notebooks.find((n) => n.id === id);
-      const name = notebook?.displayName || id;
+    for (const id of dashboardIds) {
+      const dashboard = dashboards.find((d) => d.id === id);
+      const name = dashboard?.displayName || id;
 
       try {
-        console.log(`Updating notebook: ${name} (${id}) to ${action}`);
-        const response = await fetch(`/api/notebooksUpdate`, {
+        console.log(`Updating dashboard: ${name} (${id}) to ${action}`);
+        const response = await fetch(`/api/dashboardsUpdate`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -546,7 +546,7 @@ export const NotebookManager = () => {
     }
 
     setToggling(false);
-    setSelectedNotebooks(new Set());
+    setSelectedDashboards(new Set());
 
     if (failCount === 0 && successCount > 0) {
       showToast({
@@ -557,7 +557,7 @@ export const NotebookManager = () => {
     } else if (successCount === 0) {
       showToast({
         title: "Update failed",
-        message: `Failed to update: ${failedNames.join(", ")}. Note: Only notebook owners can change visibility.`,
+        message: `Failed to update: ${failedNames.join(", ")}. Note: Only dashboard owners can change visibility.`,
         type: "critical",
       });
     } else {
@@ -568,13 +568,13 @@ export const NotebookManager = () => {
       });
     }
 
-    console.log("Refreshing notebook list after visibility update...");
-    await loadNotebooks();
+    console.log("Refreshing dashboard list after visibility update...");
+    await loadDashboards();
   };
 
   // Wrapper functions for async handlers
   const onRefreshClick = () => {
-    void loadNotebooks();
+    void loadDashboards();
   };
 
   const onBulkUploadClick = () => {
@@ -601,9 +601,9 @@ export const NotebookManager = () => {
     <Page>
       <Page.Header>
         <Flex flexDirection="column" gap={8}>
-          <Heading level={1}>Notebook Manager</Heading>
+          <Heading level={1}>Dashboard Manager</Heading>
           <Paragraph>
-            Upload, manage, export, and delete notebooks in bulk.
+            Upload, manage, export, and delete dashboards in bulk.
           </Paragraph>
         </Flex>
       </Page.Header>
@@ -612,16 +612,16 @@ export const NotebookManager = () => {
           <Flex flexDirection="column" gap={32}>
             {/* Bulk Upload Section */}
             <Flex flexDirection="column" gap={16}>
-              <Heading level={2}>Bulk Upload Notebooks</Heading>
+              <Heading level={2}>Bulk Upload Dashboards</Heading>
               <Paragraph>
-                Select multiple notebook JSON files to upload them all at once.
+                Select multiple dashboard JSON files to upload them all at once.
               </Paragraph>
 
               <input
                 type="file"
                 accept=".json,application/json"
                 multiple
-                title="Select notebook JSON files to upload"
+                title="Select dashboard JSON files to upload"
                 onChange={handleFileChange}
                 disabled={uploading}
                 style={{
@@ -647,7 +647,7 @@ export const NotebookManager = () => {
                   <Button.Prefix>
                     <UploadIcon />
                   </Button.Prefix>
-                  {uploading ? "Uploading..." : "Upload Notebooks"}
+                  {uploading ? "Uploading..." : "Upload Dashboards"}
                 </Button>
               </Flex>
 
@@ -684,7 +684,7 @@ export const NotebookManager = () => {
                               color: Colors.Text.Success.Default,
                             }}
                           >
-                            Success - ID: {result.notebookId}
+                            Success - ID: {result.dashboardId}
                           </Paragraph>
                         ) : (
                           <Paragraph
@@ -703,10 +703,10 @@ export const NotebookManager = () => {
               )}
             </Flex>
 
-            {/* Notebooks List Section */}
+            {/* Dashboards List Section */}
             <Flex flexDirection="column" gap={16}>
               <Flex justifyContent="space-between" alignItems="center">
-                <Heading level={2}>Existing Notebooks</Heading>
+                <Heading level={2}>Existing Dashboards</Heading>
                 <Button onClick={onRefreshClick} disabled={loading}>
                   <Button.Prefix>
                     <RefreshIcon />
@@ -748,7 +748,7 @@ export const NotebookManager = () => {
                     onChange={(e) => setShowOnlyMine(e.target.checked)}
                     style={{ cursor: "pointer" }}
                   />
-                  Show only my notebooks
+                  Show only my dashboards
                 </label>
               </Flex>
 
@@ -756,29 +756,29 @@ export const NotebookManager = () => {
                 <Button
                   variant="default"
                   onClick={handleSelectAll}
-                  disabled={loading || filteredAndSortedNotebooks.length === 0}
+                  disabled={loading || filteredAndSortedDashboards.length === 0}
                 >
-                  {filteredAndSortedNotebooks.every((n) =>
-                    selectedNotebooks.has(n.id)
-                  ) && filteredAndSortedNotebooks.length > 0
+                  {filteredAndSortedDashboards.every((d) =>
+                    selectedDashboards.has(d.id)
+                  ) && filteredAndSortedDashboards.length > 0
                     ? "Deselect All"
                     : "Select All"}
                 </Button>
                 <Button
                   variant="default"
                   onClick={onExportClick}
-                  disabled={selectedNotebooks.size === 0}
+                  disabled={selectedDashboards.size === 0}
                 >
                   <Button.Prefix>
                     <DownloadIcon />
                   </Button.Prefix>
-                  Export Selected ({selectedNotebooks.size})
+                  Export Selected ({selectedDashboards.size})
                 </Button>
                 <Button
                   variant="default"
                   onClick={onMakePrivateClick}
-                  disabled={toggling || selectedNotebooks.size === 0 || hasNonOwnedSelected}
-                  title={hasNonOwnedSelected ? "Cannot modify notebooks you don't own" : undefined}
+                  disabled={toggling || selectedDashboards.size === 0 || hasNonOwnedSelected}
+                  title={hasNonOwnedSelected ? "Cannot modify dashboards you don't own" : undefined}
                 >
                   <Button.Prefix>
                     <LockIcon />
@@ -788,8 +788,8 @@ export const NotebookManager = () => {
                 <Button
                   color="warning"
                   onClick={onMakePublicClick}
-                  disabled={toggling || selectedNotebooks.size === 0 || hasNonOwnedSelected}
-                  title={hasNonOwnedSelected ? "Cannot modify notebooks you don't own" : undefined}
+                  disabled={toggling || selectedDashboards.size === 0 || hasNonOwnedSelected}
+                  title={hasNonOwnedSelected ? "Cannot modify dashboards you don't own" : undefined}
                 >
                   <Button.Prefix>
                     <UnlockIcon />
@@ -799,21 +799,21 @@ export const NotebookManager = () => {
                 <Button
                   color="critical"
                   onClick={onDeleteClick}
-                  disabled={deleting || selectedNotebooks.size === 0 || hasNonOwnedSelected}
-                  title={hasNonOwnedSelected ? "Cannot delete notebooks you don't own" : undefined}
+                  disabled={deleting || selectedDashboards.size === 0 || hasNonOwnedSelected}
+                  title={hasNonOwnedSelected ? "Cannot delete dashboards you don't own" : undefined}
                 >
                   <Button.Prefix>
                     <DeleteIcon />
                   </Button.Prefix>
                   {deleting
                     ? "Deleting..."
-                    : `Delete Selected (${selectedNotebooks.size})`}
+                    : `Delete Selected (${selectedDashboards.size})`}
                 </Button>
               </Flex>
 
               {loading ? (
                 <Flex justifyContent="center" padding={32}>
-                  <Paragraph>Loading notebooks...</Paragraph>
+                  <Paragraph>Loading dashboards...</Paragraph>
                 </Flex>
               ) : (
                 <div
@@ -843,10 +843,10 @@ export const NotebookManager = () => {
                         >
                           <input
                             type="checkbox"
-                            title="Select all notebooks"
+                            title="Select all dashboards"
                             checked={
-                              filteredAndSortedNotebooks.length > 0 &&
-                              filteredAndSortedNotebooks.every((n) => selectedNotebooks.has(n.id))
+                              filteredAndSortedDashboards.length > 0 &&
+                              filteredAndSortedDashboards.every((d) => selectedDashboards.has(d.id))
                             }
                             onChange={handleSelectAll}
                           />
@@ -919,7 +919,7 @@ export const NotebookManager = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredAndSortedNotebooks.length === 0 ? (
+                      {filteredAndSortedDashboards.length === 0 ? (
                         <tr>
                           <td
                             colSpan={6}
@@ -930,18 +930,18 @@ export const NotebookManager = () => {
                             }}
                           >
                             {filterText
-                              ? "No notebooks match filter"
-                              : "No notebooks found"}
+                              ? "No dashboards match filter"
+                              : "No dashboards found"}
                           </td>
                         </tr>
                       ) : (
-                        filteredAndSortedNotebooks.map((notebook) => (
+                        filteredAndSortedDashboards.map((dashboard) => (
                           <tr
-                            key={notebook.id}
+                            key={dashboard.id}
                             style={{
                               borderBottom: `1px solid ${Colors.Border.Neutral.Default}`,
-                              backgroundColor: selectedNotebooks.has(
-                                notebook.id
+                              backgroundColor: selectedDashboards.has(
+                                dashboard.id
                               )
                                 ? Colors.Background.Surface.Default
                                 : "transparent",
@@ -950,10 +950,10 @@ export const NotebookManager = () => {
                             <td style={{ padding: "12px" }}>
                               <input
                                 type="checkbox"
-                                title={`Select ${notebook.displayName || "notebook"}`}
-                                checked={selectedNotebooks.has(notebook.id)}
+                                title={`Select ${dashboard.displayName || "dashboard"}`}
+                                checked={selectedDashboards.has(dashboard.id)}
                                 onChange={() =>
-                                  handleSelectNotebook(notebook.id)
+                                  handleSelectDashboard(dashboard.id)
                                 }
                                 style={{ cursor: "pointer" }}
                               />
@@ -965,7 +965,7 @@ export const NotebookManager = () => {
                               }}
                             >
                               <a
-                                href={`${getEnvironmentUrl()}/ui/apps/dynatrace.notebooks/notebook/${notebook.id}`}
+                                href={`${getEnvironmentUrl()}/ui/apps/dynatrace.dashboards/dashboard/${dashboard.id}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 style={{
@@ -982,7 +982,7 @@ export const NotebookManager = () => {
                                 }
                               >
                                 <Strong>
-                                  {notebook.displayName || "Unnamed"}
+                                  {dashboard.displayName || "Unnamed"}
                                 </Strong>
                               </a>
                             </td>
@@ -992,8 +992,8 @@ export const NotebookManager = () => {
                                 color: Colors.Text.Neutral.Default,
                               }}
                             >
-                              {notebook.owner || "N/A"}
-                              {currentUserId && notebook.owner === currentUserId && (
+                              {dashboard.owner || "N/A"}
+                              {currentUserId && dashboard.owner === currentUserId && (
                                 <span
                                   style={{
                                     marginLeft: "8px",
@@ -1016,9 +1016,9 @@ export const NotebookManager = () => {
                                 color: Colors.Text.Neutral.Default,
                               }}
                             >
-                              {notebook.createdTime
+                              {dashboard.createdTime
                                 ? new Date(
-                                    notebook.createdTime
+                                    dashboard.createdTime
                                   ).toLocaleDateString()
                                 : "N/A"}
                             </td>
@@ -1029,9 +1029,9 @@ export const NotebookManager = () => {
                                 color: Colors.Text.Neutral.Default,
                               }}
                             >
-                              {notebook.modifiedTime
+                              {dashboard.modifiedTime
                                 ? new Date(
-                                    notebook.modifiedTime
+                                    dashboard.modifiedTime
                                   ).toLocaleDateString()
                                 : "N/A"}
                             </td>
@@ -1045,16 +1045,16 @@ export const NotebookManager = () => {
                                 style={{
                                   padding: "4px 8px",
                                   borderRadius: "4px",
-                                  backgroundColor: notebook.isPublic
+                                  backgroundColor: dashboard.isPublic
                                     ? Colors.Background.Field.Warning.Default
                                     : Colors.Background.Field.Success.Default,
-                                  color: notebook.isPublic
+                                  color: dashboard.isPublic
                                     ? Colors.Text.Warning.Default
                                     : Colors.Text.Success.Default,
                                   fontWeight: 500,
                                 }}
                               >
-                                {notebook.isPublic ? "PUBLIC" : "Private"}
+                                {dashboard.isPublic ? "PUBLIC" : "Private"}
                               </span>
                             </td>
                           </tr>
@@ -1071,15 +1071,15 @@ export const NotebookManager = () => {
                 {filterText ? (
                   <>
                     Showing:{" "}
-                    <Strong>{filteredAndSortedNotebooks.length}</Strong> of{" "}
-                    <Strong>{notebooks.length}</Strong> notebooks
+                    <Strong>{filteredAndSortedDashboards.length}</Strong> of{" "}
+                    <Strong>{dashboards.length}</Strong> dashboards
                   </>
                 ) : (
                   <>
-                    Total notebooks: <Strong>{notebooks.length}</Strong>
+                    Total dashboards: <Strong>{dashboards.length}</Strong>
                   </>
                 )}{" "}
-                | Selected: <Strong>{selectedNotebooks.size}</Strong>
+                | Selected: <Strong>{selectedDashboards.size}</Strong>
               </Paragraph>
             </Flex>
           </Flex>

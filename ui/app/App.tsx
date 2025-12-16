@@ -5,6 +5,7 @@ import { Data } from "./pages/Data";
 import { Header } from "./components/Header";
 import { Home } from "./pages/Home";
 import { NotebookManager } from "./pages/NotebookManager";
+import { DashboardManager } from "./pages/DashboardManager";
 
 export const App = () => {
   return (
@@ -17,6 +18,7 @@ export const App = () => {
           <Route path="/" element={<Home />} />
           <Route path="/data" element={<Data />} />
           <Route path="/notebook-manager" element={<NotebookManager />} />
+          <Route path="/dashboard-manager" element={<DashboardManager />} />
         </Routes>
       </Page.Main>
     </Page>

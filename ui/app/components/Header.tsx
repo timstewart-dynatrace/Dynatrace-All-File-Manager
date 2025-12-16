@@ -13,6 +13,9 @@ export const Header = () => {
         <AppHeader.NavItem as={Link} to="/notebook-manager">
           Notebook Manager
         </AppHeader.NavItem>
+        <AppHeader.NavItem as={Link} to="/dashboard-manager">
+          Dashboard Manager
+        </AppHeader.NavItem>
       </AppHeader.NavItems>
     </AppHeader>
   );

@@ -12,7 +12,7 @@ export default async function (payload: { id: string }) {
       return {
         statusCode: 400,
         body: {
-          message: "Notebook ID is required",
+          message: "Dashboard ID is required",
         },
       };
     }
@@ -53,7 +53,7 @@ export default async function (payload: { id: string }) {
     }
 
     // Combine metadata and content for complete export
-    const notebookData = {
+    const dashboardData = {
       id: metadata.id,
       name: metadata.name,
       type: metadata.type,
@@ -66,16 +66,16 @@ export default async function (payload: { id: string }) {
 
     return {
       statusCode: 200,
-      body: notebookData,
+      body: dashboardData,
     };
   } catch (err: unknown) {
     const error = err as ApiError;
-    console.error("Error getting notebook:", error);
+    console.error("Error getting dashboard:", error);
 
     return {
       statusCode: error.statusCode || 500,
       body: {
-        message: error.message || "Failed to get notebook",
+        message: error.message || "Failed to get dashboard",
         details: error.toString(),
       },
     };
