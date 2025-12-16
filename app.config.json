@@ -3,7 +3,7 @@
   "environmentUrl": "https://yhu28601.apps.dynatrace.com/",
   "app": {
     "name": "ESA Utilities",
-    "version": "0.6.0",
+    "version": "0.9.0",
     "description": "A collection of utilities for Dynatrace ESA Team",
     "id": "my.esa.utilities",
     "scopes": [

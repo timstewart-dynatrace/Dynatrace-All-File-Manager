@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { getCurrentUserDetails } from "@dynatrace-sdk/app-environment";
 import { Page } from "@dynatrace/strato-components-preview/layouts";
 import {
   Heading,
@@ -69,12 +70,19 @@ export const NotebookManager = () => {
   const [filterText, setFilterText] = useState("");
   const [sortField, setSortField] = useState<SortField>("displayName");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [showOnlyMine, setShowOnlyMine] = useState(false);
 
   // Filter and sort notebooks
   const filteredAndSortedNotebooks = useMemo(() => {
     let result = [...notebooks];
 
-    // Apply filter
+    // Apply "show only mine" filter
+    if (showOnlyMine && currentUserId) {
+      result = result.filter((n) => n.owner === currentUserId);
+    }
+
+    // Apply text filter
     if (filterText.trim()) {
       const lowerFilter = filterText.toLowerCase();
       result = result.filter(
@@ -118,7 +126,7 @@ export const NotebookManager = () => {
     });
 
     return result;
-  }, [notebooks, filterText, sortField, sortDirection]);
+  }, [notebooks, filterText, sortField, sortDirection, showOnlyMine, currentUserId]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -173,23 +181,35 @@ export const NotebookManager = () => {
 
   useEffect(() => {
     void loadNotebooks();
+    // Load current user info
+    try {
+      const userDetails = getCurrentUserDetails();
+      console.log("Current user:", userDetails);
+      setCurrentUserId(userDetails.id);
+    } catch (err) {
+      console.error("Failed to get current user details:", err);
+    }
   }, [loadNotebooks]);
 
   const handleSelectAll = () => {
-    const filteredIds = filteredAndSortedNotebooks.map((n) => n.id);
-    const allFilteredSelected = filteredIds.every((id) =>
+    // Only select notebooks owned by current user
+    const selectableNotebooks = filteredAndSortedNotebooks.filter(
+      (n) => !currentUserId || n.owner === currentUserId
+    );
+    const selectableIds = selectableNotebooks.map((n) => n.id);
+    const allSelectableSelected = selectableIds.every((id) =>
       selectedNotebooks.has(id)
     );
 
-    if (allFilteredSelected) {
-      // Deselect all filtered notebooks
+    if (allSelectableSelected && selectableIds.length > 0) {
+      // Deselect all selectable notebooks
       const newSelected = new Set(selectedNotebooks);
-      filteredIds.forEach((id) => newSelected.delete(id));
+      selectableIds.forEach((id) => newSelected.delete(id));
       setSelectedNotebooks(newSelected);
     } else {
-      // Select all filtered notebooks
+      // Select all selectable notebooks
       const newSelected = new Set(selectedNotebooks);
-      filteredIds.forEach((id) => newSelected.add(id));
+      selectableIds.forEach((id) => newSelected.add(id));
       setSelectedNotebooks(newSelected);
     }
   };
@@ -691,22 +711,41 @@ export const NotebookManager = () => {
               </Flex>
 
               {/* Filter Input */}
-              <input
-                type="text"
-                placeholder="Filter by name or owner..."
-                value={filterText}
-                onChange={(e) => setFilterText(e.target.value)}
-                style={{
-                  padding: "10px 12px",
-                  border: `1px solid ${Colors.Border.Neutral.Default}`,
-                  borderRadius: "4px",
-                  backgroundColor: "transparent",
-                  color: Colors.Text.Neutral.Default,
-                  fontSize: "14px",
-                  width: "100%",
-                  maxWidth: "400px",
-                }}
-              />
+              <Flex gap={16} alignItems="center" flexWrap="wrap">
+                <input
+                  type="text"
+                  placeholder="Filter by name or owner..."
+                  value={filterText}
+                  onChange={(e) => setFilterText(e.target.value)}
+                  style={{
+                    padding: "10px 12px",
+                    border: `1px solid ${Colors.Border.Neutral.Default}`,
+                    borderRadius: "4px",
+                    backgroundColor: "transparent",
+                    color: Colors.Text.Neutral.Default,
+                    fontSize: "14px",
+                    width: "100%",
+                    maxWidth: "400px",
+                  }}
+                />
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    cursor: "pointer",
+                    color: Colors.Text.Neutral.Default,
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={showOnlyMine}
+                    onChange={(e) => setShowOnlyMine(e.target.checked)}
+                    style={{ cursor: "pointer" }}
+                  />
+                  Show only my notebooks
+                </label>
+              </Flex>
 
               <Flex gap={16} flexWrap="wrap">
                 <Button
@@ -796,12 +835,14 @@ export const NotebookManager = () => {
                         >
                           <input
                             type="checkbox"
-                            title="Select all notebooks"
+                            title="Select all my notebooks"
                             checked={
-                              filteredAndSortedNotebooks.length > 0 &&
-                              filteredAndSortedNotebooks.every((n) =>
-                                selectedNotebooks.has(n.id)
-                              )
+                              filteredAndSortedNotebooks.filter(
+                                (n) => !currentUserId || n.owner === currentUserId
+                              ).length > 0 &&
+                              filteredAndSortedNotebooks
+                                .filter((n) => !currentUserId || n.owner === currentUserId)
+                                .every((n) => selectedNotebooks.has(n.id))
                             }
                             onChange={handleSelectAll}
                           />
@@ -905,13 +946,20 @@ export const NotebookManager = () => {
                             <td style={{ padding: "12px" }}>
                               <input
                                 type="checkbox"
-                                title={`Select ${
-                                  notebook.displayName || "notebook"
-                                }`}
+                                title={
+                                  currentUserId && notebook.owner !== currentUserId
+                                    ? "You can only modify notebooks you own"
+                                    : `Select ${notebook.displayName || "notebook"}`
+                                }
                                 checked={selectedNotebooks.has(notebook.id)}
+                                disabled={currentUserId !== null && notebook.owner !== currentUserId}
                                 onChange={() =>
                                   handleSelectNotebook(notebook.id)
                                 }
+                                style={{
+                                  cursor: currentUserId && notebook.owner !== currentUserId ? "not-allowed" : "pointer",
+                                  opacity: currentUserId && notebook.owner !== currentUserId ? 0.4 : 1,
+                                }}
                               />
                             </td>
                             <td
@@ -949,6 +997,21 @@ export const NotebookManager = () => {
                               }}
                             >
                               {notebook.owner || "N/A"}
+                              {currentUserId && notebook.owner === currentUserId && (
+                                <span
+                                  style={{
+                                    marginLeft: "8px",
+                                    padding: "2px 6px",
+                                    borderRadius: "4px",
+                                    backgroundColor: Colors.Background.Field.Primary.Default,
+                                    color: Colors.Text.Primary.Default,
+                                    fontSize: "11px",
+                                    fontWeight: 500,
+                                  }}
+                                >
+                                  Mine
+                                </span>
+                              )}
                             </td>
                             <td
                               style={{

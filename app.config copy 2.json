@@ -1,0 +1,17 @@
+{
+  "$schema": "./.dt-app/app.config.schema.json",
+  "environmentUrl": "https://yhu28601.apps.dynatrace.com/",
+  "app": {
+    "name": "ESA Utilities",
+    "version": "0.6.0",
+    "description": "A collection of utilities for Dynatrace ESA Team",
+    "id": "my.esa.utilities",
+    "scopes": [
+      { "name": "storage:logs:read", "comment": "default template" },
+      { "name": "storage:buckets:read", "comment": "default template" },
+      { "name": "document:documents:read", "comment": "Read notebooks via Document API" },
+      { "name": "document:documents:write", "comment": "Create notebooks via Document API" },
+      { "name": "document:documents:delete", "comment": "Delete notebooks via Document API" }
+    ]
+  }
+}
