@@ -86,6 +86,7 @@ export const NotebookManager = () => {
   const [showShareUrls, setShowShareUrls] = useState(false);
   const [shares, setShares] = useState<Map<string, EnvironmentShare>>(new Map());
   const [generatingShare, setGeneratingShare] = useState(false);
+  const [alternateView, setAlternateView] = useState(false);
 
   // Filter and sort notebooks
   const filteredAndSortedNotebooks = useMemo(() => {
@@ -918,6 +919,23 @@ export const NotebookManager = () => {
                   />
                   Show share URLs
                 </label>
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    cursor: "pointer",
+                    color: Colors.Text.Neutral.Default,
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={alternateView}
+                    onChange={(e) => setAlternateView(e.target.checked)}
+                    style={{ cursor: "pointer" }}
+                  />
+                  Simple view (for copy/paste)
+                </label>
               </Flex>
 
               <Flex gap={16} flexWrap="wrap">
@@ -994,6 +1012,65 @@ export const NotebookManager = () => {
                 <Flex justifyContent="center" padding={32}>
                   <Paragraph>Loading notebooks...</Paragraph>
                 </Flex>
+              ) : alternateView ? (
+                <div
+                  style={{
+                    border: `1px solid ${Colors.Border.Neutral.Default}`,
+                    borderRadius: "4px",
+                    maxHeight: "500px",
+                    overflowY: "auto",
+                    padding: "16px",
+                  }}
+                >
+                  {filteredAndSortedNotebooks
+                    .filter((notebook) => !showShareUrls || shares.has(notebook.id))
+                    .map((notebook) => (
+                      <div key={notebook.id} style={{ marginBottom: "8px" }}>
+                        {showShareUrls && shares.has(notebook.id) ? (
+                          <a
+                            href={generateShareUrl(shares.get(notebook.id)!.id)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              color: Colors.Text.Primary.Default,
+                              textDecoration: "none",
+                            }}
+                            onMouseEnter={(e) =>
+                              (e.currentTarget.style.textDecoration = "underline")
+                            }
+                            onMouseLeave={(e) =>
+                              (e.currentTarget.style.textDecoration = "none")
+                            }
+                          >
+                            {notebook.displayName || "Unnamed"}
+                          </a>
+                        ) : (
+                          <a
+                            href={`${getEnvironmentUrl()}/ui/apps/dynatrace.notebooks/notebook/${notebook.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              color: Colors.Text.Primary.Default,
+                              textDecoration: "none",
+                            }}
+                            onMouseEnter={(e) =>
+                              (e.currentTarget.style.textDecoration = "underline")
+                            }
+                            onMouseLeave={(e) =>
+                              (e.currentTarget.style.textDecoration = "none")
+                            }
+                          >
+                            {notebook.displayName || "Unnamed"}
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  {showShareUrls && filteredAndSortedNotebooks.filter((n) => shares.has(n.id)).length === 0 && (
+                    <Paragraph style={{ color: Colors.Text.Neutral.Subdued, fontStyle: "italic" }}>
+                      No notebooks with share links. Generate share links first.
+                    </Paragraph>
+                  )}
+                </div>
               ) : (
                 <div
                   style={{
