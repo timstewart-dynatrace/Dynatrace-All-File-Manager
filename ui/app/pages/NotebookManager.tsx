@@ -16,6 +16,8 @@ import {
   DownloadIcon,
   LockIcon,
   UnlockIcon,
+  LinkIcon,
+  CopyIcon,
 } from "@dynatrace/strato-icons";
 import Colors from "@dynatrace/strato-design-tokens/colors";
 
@@ -36,6 +38,15 @@ interface Notebook {
   isPrivate?: boolean;
   isPublic?: boolean;
   access?: string[];
+  shareId?: string;
+  shareUrl?: string;
+}
+
+interface EnvironmentShare {
+  id: string;
+  documentId: string;
+  access: string[];
+  claimCount: number;
 }
 
 interface UploadResult {
@@ -72,6 +83,9 @@ export const NotebookManager = () => {
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [showOnlyMine, setShowOnlyMine] = useState(false);
+  const [showShareUrls, setShowShareUrls] = useState(false);
+  const [shares, setShares] = useState<Map<string, EnvironmentShare>>(new Map());
+  const [generatingShare, setGeneratingShare] = useState(false);
 
   // Filter and sort notebooks
   const filteredAndSortedNotebooks = useMemo(() => {
@@ -179,8 +193,39 @@ export const NotebookManager = () => {
     }
   }, []);
 
+  const loadShares = useCallback(async () => {
+    console.log("[NotebookManager] loadShares() called");
+    try {
+      const response = await fetch("/api/notebooksShareList", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      console.log("[NotebookManager] loadShares response status:", response.status);
+      if (response.ok) {
+        const data = await response.json() as { body?: { shares?: EnvironmentShare[] } };
+        console.log("[NotebookManager] loadShares raw data:", JSON.stringify(data));
+        const sharesList = data.body?.shares || [];
+        console.log("[NotebookManager] loadShares found", sharesList.length, "shares");
+        const sharesMap = new Map<string, EnvironmentShare>();
+        sharesList.forEach((share: EnvironmentShare) => {
+          console.log("[NotebookManager] Mapping share:", share.id, "-> documentId:", share.documentId);
+          sharesMap.set(share.documentId, share);
+        });
+        setShares(sharesMap);
+        console.log("[NotebookManager] shares state updated with", sharesMap.size, "entries");
+      } else {
+        const errorText = await response.text();
+        console.error("[NotebookManager] loadShares failed:", response.status, errorText);
+      }
+    } catch (err) {
+      console.error("[NotebookManager] Failed to load shares:", err);
+    }
+  }, []);
+
   useEffect(() => {
     void loadNotebooks();
+    void loadShares();
     // Load current user info
     try {
       const userDetails = getCurrentUserDetails();
@@ -189,7 +234,7 @@ export const NotebookManager = () => {
     } catch (err) {
       console.error("Failed to get current user details:", err);
     }
-  }, [loadNotebooks]);
+  }, [loadNotebooks, loadShares]);
 
   // Check if any selected notebook is not owned by current user
   const hasNonOwnedSelected = useMemo(() => {
@@ -597,6 +642,112 @@ export const NotebookManager = () => {
     void handleBulkToggleVisibility(false);
   };
 
+  const generateShareUrl = (shareId: string): string => {
+    return `${getEnvironmentUrl()}/ui/document/v0/#share=${shareId}`;
+  };
+
+  const handleGenerateShares = async () => {
+    console.log("[NotebookManager] handleGenerateShares() called, selected:", selectedNotebooks.size);
+    if (selectedNotebooks.size === 0) {
+      showToast({
+        title: "No notebooks selected",
+        message: "Please select at least one notebook to generate share links",
+        type: "warning",
+      });
+      return;
+    }
+
+    setGeneratingShare(true);
+    let successCount = 0;
+    let failCount = 0;
+    let alreadyExistsCount = 0;
+
+    for (const id of selectedNotebooks) {
+      console.log("[NotebookManager] Processing notebook:", id);
+      // Skip if share already exists
+      if (shares.has(id)) {
+        console.log("[NotebookManager] Share already exists for:", id);
+        alreadyExistsCount++;
+        continue;
+      }
+
+      try {
+        console.log("[NotebookManager] Creating share for:", id);
+        const response = await fetch("/api/notebooksShare", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ documentId: id }),
+        });
+
+        console.log("[NotebookManager] Share creation response status:", response.status);
+        const responseData = await response.json() as { body?: { message?: string; shareId?: string } };
+        console.log("[NotebookManager] Share creation response data:", JSON.stringify(responseData));
+
+        if (response.ok) {
+          console.log("[NotebookManager] Share created successfully for:", id, "shareId:", responseData.body?.shareId);
+          successCount++;
+        } else {
+          if (responseData.body?.message?.includes("already exists")) {
+            console.log("[NotebookManager] Share already exists (API response) for:", id);
+            alreadyExistsCount++;
+          } else {
+            console.error("[NotebookManager] Failed to create share for:", id, responseData);
+            failCount++;
+          }
+        }
+      } catch (err) {
+        console.error(`[NotebookManager] Exception creating share for ${id}:`, err);
+        failCount++;
+      }
+    }
+
+    console.log("[NotebookManager] Generation complete - success:", successCount, "failed:", failCount, "existed:", alreadyExistsCount);
+    setGeneratingShare(false);
+
+    // Refresh both notebooks list and shares list to update the UI
+    console.log("[NotebookManager] Refreshing notebooks and shares...");
+    await Promise.all([loadNotebooks(), loadShares()]);
+    console.log("[NotebookManager] Refresh complete, shares map size:", shares.size);
+
+    if (successCount > 0 || alreadyExistsCount > 0) {
+      showToast({
+        title: "Share links generated (read-only)",
+        message: `Created: ${successCount}, Already existed: ${alreadyExistsCount}${failCount > 0 ? `, Failed: ${failCount}` : ""}`,
+        type: failCount > 0 ? "warning" : "success",
+      });
+      // Enable show share URLs toggle
+      setShowShareUrls(true);
+    } else {
+      showToast({
+        title: "Failed to generate shares",
+        message: "Could not create share links. Only document owners can create shares.",
+        type: "critical",
+      });
+    }
+  };
+
+  const onGenerateSharesClick = () => {
+    void handleGenerateShares();
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast({
+        title: "Copied",
+        message: "Share URL copied to clipboard",
+        type: "success",
+      });
+    } catch (err) {
+      console.error("Failed to copy:", err);
+      showToast({
+        title: "Copy failed",
+        message: "Could not copy to clipboard",
+        type: "critical",
+      });
+    }
+  };
+
   return (
     <Page>
       <Page.Header>
@@ -750,6 +901,23 @@ export const NotebookManager = () => {
                   />
                   Show only my notebooks
                 </label>
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    cursor: "pointer",
+                    color: Colors.Text.Neutral.Default,
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={showShareUrls}
+                    onChange={(e) => setShowShareUrls(e.target.checked)}
+                    style={{ cursor: "pointer" }}
+                  />
+                  Show share URLs
+                </label>
               </Flex>
 
               <Flex gap={16} flexWrap="wrap">
@@ -795,6 +963,17 @@ export const NotebookManager = () => {
                     <UnlockIcon />
                   </Button.Prefix>
                   {toggling ? "Updating..." : "Make Public"}
+                </Button>
+                <Button
+                  variant="default"
+                  onClick={onGenerateSharesClick}
+                  disabled={generatingShare || selectedNotebooks.size === 0 || hasNonOwnedSelected}
+                  title={hasNonOwnedSelected ? "Cannot create shares for notebooks you don't own" : "Generate shareable URLs for selected notebooks"}
+                >
+                  <Button.Prefix>
+                    <LinkIcon />
+                  </Button.Prefix>
+                  {generatingShare ? "Generating..." : "Generate Share Links"}
                 </Button>
                 <Button
                   color="critical"
@@ -916,13 +1095,24 @@ export const NotebookManager = () => {
                         >
                           Visibility{getSortIndicator("isPublic")}
                         </th>
+                        {showShareUrls && (
+                          <th
+                            style={{
+                              padding: "12px",
+                              textAlign: "left",
+                              color: Colors.Text.Neutral.Default,
+                            }}
+                          >
+                            Share URL
+                          </th>
+                        )}
                       </tr>
                     </thead>
                     <tbody>
                       {filteredAndSortedNotebooks.length === 0 ? (
                         <tr>
                           <td
-                            colSpan={6}
+                            colSpan={showShareUrls ? 7 : 6}
                             style={{
                               padding: "24px",
                               textAlign: "center",
@@ -1057,6 +1247,46 @@ export const NotebookManager = () => {
                                 {notebook.isPublic ? "PUBLIC" : "Private"}
                               </span>
                             </td>
+                            {showShareUrls && (
+                              <td
+                                style={{
+                                  padding: "12px",
+                                  fontSize: "12px",
+                                }}
+                              >
+                                {shares.has(notebook.id) ? (
+                                  <Flex gap={8} alignItems="center">
+                                    <input
+                                      type="text"
+                                      readOnly
+                                      title="Share URL - click to select"
+                                      value={generateShareUrl(shares.get(notebook.id)!.id)}
+                                      style={{
+                                        padding: "4px 8px",
+                                        fontSize: "11px",
+                                        border: `1px solid ${Colors.Border.Neutral.Default}`,
+                                        borderRadius: "4px",
+                                        backgroundColor: "transparent",
+                                        color: Colors.Text.Neutral.Default,
+                                        width: "200px",
+                                      }}
+                                      onClick={(e) => (e.target as HTMLInputElement).select()}
+                                    />
+                                    <Button
+                                      variant="default"
+                                      onClick={() => void copyToClipboard(generateShareUrl(shares.get(notebook.id)!.id))}
+                                      title="Copy share URL"
+                                    >
+                                      <CopyIcon />
+                                    </Button>
+                                  </Flex>
+                                ) : (
+                                  <span style={{ color: Colors.Text.Neutral.Subdued, fontStyle: "italic" }}>
+                                    No share
+                                  </span>
+                                )}
+                              </td>
+                            )}
                           </tr>
                         ))
                       )}

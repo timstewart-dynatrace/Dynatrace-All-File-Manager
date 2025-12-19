@@ -9,7 +9,7 @@ This file provides guidance for Claude Code when working with this repository.
 **ESA Utilities** is a Dynatrace App built with React and TypeScript using the Strato Design System. It provides utilities for Enterprise Solution Architects.
 
 - **App ID:** `my.esa.utilities`
-- **Version:** 0.10.8
+- **Version:** 0.11.3
 - **Sprint Environment:** https://xzj8412h.sprint.apps.dynatracelabs.com/
 - **Production Environment:** https://yhu28601.apps.dynatrace.com/
 
@@ -54,7 +54,11 @@ esa-utilities/
 │   ├── dashboardsDelete.function.ts  # Delete dashboard
 │   ├── dashboardsGet.function.ts     # Get dashboard by ID (metadata + content)
 │   ├── dashboardsList.function.ts    # List dashboards with security info
-│   └── dashboardsUpdate.function.ts  # Update dashboard visibility
+│   ├── dashboardsUpdate.function.ts  # Update dashboard visibility
+│   ├── notebooksShare.function.ts    # Create share link for notebook
+│   ├── notebooksShareList.function.ts # List notebook shares
+│   ├── dashboardsShare.function.ts   # Create share link for dashboard
+│   └── dashboardsShareList.function.ts # List dashboard shares
 ├── ui/
 │   ├── app/
 │   │   ├── App.tsx                   # Main app with routing
@@ -118,6 +122,9 @@ Configured in `app.config.json`:
 - `document:documents:read` - Read notebooks/dashboards via Document API
 - `document:documents:write` - Create/update notebooks/dashboards via Document API
 - `document:documents:delete` - Delete notebooks/dashboards via Document API
+- `document:environment-shares:read` - Read environment shares for documents
+- `document:environment-shares:write` - Create environment shares for documents
+- `document:environment-shares:delete` - Delete environment shares for documents
 
 ## API Functions
 
@@ -130,6 +137,8 @@ Configured in `app.config.json`:
 | `/api/notebooks` | POST | Create a new notebook |
 | `/api/notebooksDelete` | POST | Delete notebook by ID |
 | `/api/notebooksUpdate` | POST | Update notebook visibility (isPrivate) |
+| `/api/notebooksShare` | POST | Create environment share link for notebook |
+| `/api/notebooksShareList` | POST | List all environment shares for notebooks |
 
 ### Dashboard APIs
 
@@ -140,6 +149,8 @@ Configured in `app.config.json`:
 | `/api/dashboards` | POST | Create a new dashboard |
 | `/api/dashboardsDelete` | POST | Delete dashboard by ID |
 | `/api/dashboardsUpdate` | POST | Update dashboard visibility (isPrivate) |
+| `/api/dashboardsShare` | POST | Create environment share link for dashboard |
+| `/api/dashboardsShareList` | POST | List all environment shares for dashboards |
 
 ### Document API Notes
 
@@ -161,16 +172,40 @@ The Notebook Manager page provides bulk operations for Dynatrace notebooks:
 - **Sortable Columns** - Click column headers to sort by name, owner, dates, or visibility
 - **Filter** - Search notebooks by name or owner
 - **Ownership Awareness** - Checkboxes always enabled, but modify/delete buttons disabled when non-owned items selected
+- **Generate Share Links** - Create shareable URLs for selected notebooks (owners only)
+- **Show Share URLs Toggle** - Display share URL column with copy-to-clipboard functionality
 
-**Note:** Only document owners can change visibility or delete documents.
+**Note:** Only document owners can change visibility, delete documents, or create share links.
 
 ## Dashboard Manager Features
 
 The Dashboard Manager page provides identical functionality to Notebook Manager but for dashboards:
 
-- All features mirror Notebook Manager
+- All features mirror Notebook Manager (including share link generation)
 - Uses `type=='dashboard'` filter for Document API
 - Links open dashboards in `dynatrace.dashboards` app using `getEnvironmentUrl()`
+
+## Environment Shares
+
+The app uses `environmentSharesClient` from `@dynatrace-sdk/client-document` to create shareable URLs:
+
+```typescript
+import { environmentSharesClient } from "@dynatrace-sdk/client-document";
+
+// Create a share
+const share = await environmentSharesClient.createEnvironmentShare({
+  body: { documentId: "...", access: "read" }  // or "read-write"
+});
+
+// Share claim URL format
+const claimUrl = `${getEnvironmentUrl()}/ui/document/v0/share/${share.id}/claim`;
+```
+
+**Key points:**
+- Only document owners can create shares
+- Users must "claim" a share to get access
+- One share per access type per document (one read, one read-write max)
+- Deleting a share revokes access from all claimers
 
 ## Link Generation
 
