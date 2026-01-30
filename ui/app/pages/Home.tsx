@@ -22,12 +22,9 @@ export const Home = () => {
         style={{ paddingBottom: 32 }}
       ></img>
 
-      <Heading>Welcome To ESA Utilities for Dynatrace App</Heading>
+      <Heading>ESA Document Management</Heading>
       <Paragraph>
-        Edit <Strong>ui/app/pages/Home.tsx</Strong> and save to reload the app.
-      </Paragraph>
-      <Paragraph>
-    A collection of utilities for Dynatrace ESA Team
+    Additional functions for managing Dynatrace Notebooks and Dashboards.
       </Paragraph>
 
       <Flex gap={48} paddingTop={64} flexFlow="wrap">
@@ -52,6 +49,16 @@ export const Home = () => {
           name="Dashboard Manager"
         />
       </Flex>
+      <Paragraph style={{ marginTop: 48 }}>
+        <a 
+          href="/ui/apps/dynatrace.settings/settings/document-management"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: "inherit", textDecoration: "underline" }}
+        >
+          View Global Document Management Settings
+        </a>
+      </Paragraph>
       <Paragraph style={{ marginTop: 48, opacity: 0.6 }}>
         Version {APP_VERSION}
       </Paragraph>

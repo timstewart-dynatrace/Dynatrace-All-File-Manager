@@ -6,7 +6,7 @@ This file provides guidance for Claude Code when working with this repository.
 
 ## Project Overview
 
-**ESA Utilities** is a Dynatrace App built with React and TypeScript using the Strato Design System. It provides utilities for Enterprise Solution Architects.
+**ESA Document Management** is a Dynatrace App built with React and TypeScript using the Strato Design System. It provides document management utilities for Enterprise Solution Architects.
 
 - **App ID:** `my.esa.utilities`
 - **Version:** 0.11.8

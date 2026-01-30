@@ -2,7 +2,7 @@
   "$schema": "./.dt-app/app.config.schema.json",
   "environmentUrl": "https://xzj8412h.sprint.apps.dynatracelabs.com/",
   "app": {
-    "name": "ESA Utilities",
+    "name": "ESA Document Management",
     "version": "0.10.8",
     "description": "A collection of utilities for Dynatrace ESA Team",
     "id": "my.esa.utilities",
