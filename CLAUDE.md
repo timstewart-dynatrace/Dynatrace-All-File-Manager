@@ -9,7 +9,7 @@ This file provides guidance for Claude Code when working with this repository.
 **ESA Document Management** is a Dynatrace App built with React and TypeScript using the Strato Design System. It provides document management utilities for Enterprise Solution Architects.
 
 - **App ID:** `my.esa.utilities`
-- **Version:** 0.11.8
+- **Version:** 0.11.9
 - **Sprint Environment:** https://xzj8412h.sprint.apps.dynatracelabs.com/
 - **Production Environment:** https://yhu28601.apps.dynatrace.com/
 

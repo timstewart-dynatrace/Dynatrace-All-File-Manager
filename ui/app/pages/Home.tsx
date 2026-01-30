@@ -1,5 +1,6 @@
 import React from "react";
 
+import { getEnvironmentUrl } from "@dynatrace-sdk/app-environment";
 import { useCurrentTheme } from "@dynatrace/strato-components/core";
 import { Flex } from "@dynatrace/strato-components/layouts";
 import {
@@ -51,7 +52,7 @@ export const Home = () => {
       </Flex>
       <Paragraph style={{ marginTop: 48 }}>
         <a 
-          href="/ui/apps/dynatrace.settings/settings/document-management"
+          href={`${getEnvironmentUrl()}/ui/apps/dynatrace.settings/settings/document-management`}
           target="_blank"
           rel="noopener noreferrer"
           style={{ color: "inherit", textDecoration: "underline" }}
