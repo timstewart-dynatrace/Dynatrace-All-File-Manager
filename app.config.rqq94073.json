@@ -1,0 +1,4 @@
+{
+  "$schema": "./.dt-app/app.config.schema.json",
+  "environmentUrl": "https://rqq94073.apps.dynatrace.com/"
+}

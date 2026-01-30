@@ -9,7 +9,7 @@ This file provides guidance for Claude Code when working with this repository.
 **ESA Utilities** is a Dynatrace App built with React and TypeScript using the Strato Design System. It provides utilities for Enterprise Solution Architects.
 
 - **App ID:** `my.esa.utilities`
-- **Version:** 0.11.3
+- **Version:** 0.11.8
 - **Sprint Environment:** https://xzj8412h.sprint.apps.dynatracelabs.com/
 - **Production Environment:** https://yhu28601.apps.dynatrace.com/
 
@@ -110,7 +110,6 @@ npm run info       # Show CLI and environment info
 | Path | Component | Description |
 |------|-----------|-------------|
 | `/` | Home | Landing page with navigation cards |
-| `/data` | Data | Data exploration |
 | `/notebook-manager` | NotebookManager | Bulk notebook management |
 | `/dashboard-manager` | DashboardManager | Bulk dashboard management |
 
