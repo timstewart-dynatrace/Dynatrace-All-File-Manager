@@ -3,7 +3,7 @@
   "environmentUrl": "https://yhu28601.apps.dynatrace.com/",
   "app": {
     "name": "ESA Document Management",
-    "version": "0.11.9",
+    "version": "0.11.10",
     "description": "A collection of utilities for Dynatrace ESA Team",
     "id": "my.esa.utilities",
     "scopes": [

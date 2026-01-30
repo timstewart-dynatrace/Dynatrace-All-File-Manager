@@ -389,14 +389,14 @@ export const DashboardManager = () => {
   const uploadDashboard = async (file: File): Promise<UploadResult> => {
     try {
       const content = await file.text();
-      const dashboardData: unknown = JSON.parse(content);
+      const dashboardData = JSON.parse(content) as Record<string, unknown>;
 
       const response = await fetch("/api/dashboards", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(dashboardData),
+        body: JSON.stringify({ ...dashboardData, _fileName: file.name }),
       });
 
       if (!response.ok) {

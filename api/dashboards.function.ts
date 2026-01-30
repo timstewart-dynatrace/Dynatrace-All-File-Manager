@@ -6,6 +6,7 @@ interface DashboardPayload {
   metadata?: { name?: string };
   dashboard?: { name?: string };
   title?: string;
+  _fileName?: string;
   [key: string]: unknown;
 }
 
@@ -36,12 +37,15 @@ export default async function (payload: DashboardPayload) {
     // - payload.displayName (display name)
     // - payload.metadata?.name (metadata section)
     // - payload.dashboard?.name (nested dashboard object)
+    // - payload._fileName (fallback to uploaded filename without extension)
+    const fileNameWithoutExtension = payload._fileName?.replace(/\.json$/i, "");
     const dashboardName =
       payload.name ||
       payload.displayName ||
       payload.metadata?.name ||
       payload.dashboard?.name ||
       payload.title ||
+      fileNameWithoutExtension ||
       "Untitled Dashboard";
 
     console.log(`Extracted dashboard name: "${dashboardName}"`);

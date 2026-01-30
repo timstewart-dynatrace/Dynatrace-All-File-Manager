@@ -389,14 +389,14 @@ export const NotebookManager = () => {
   const uploadNotebook = async (file: File): Promise<UploadResult> => {
     try {
       const content = await file.text();
-      const notebookData: unknown = JSON.parse(content);
+      const notebookData = JSON.parse(content) as Record<string, unknown>;
 
       const response = await fetch("/api/notebooks", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(notebookData),
+        body: JSON.stringify({ ...notebookData, _fileName: file.name }),
       });
 
       if (!response.ok) {
