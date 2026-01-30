@@ -6,6 +6,7 @@ interface NotebookPayload {
   metadata?: { name?: string };
   notebook?: { name?: string };
   title?: string;
+  _fileName?: string;
   [key: string]: unknown;
 }
 
@@ -36,12 +37,15 @@ export default async function (payload: NotebookPayload) {
     // - payload.displayName (display name)
     // - payload.metadata?.name (metadata section)
     // - payload.notebook?.name (nested notebook object)
+    // - payload._fileName (fallback to uploaded filename without extension)
+    const fileNameWithoutExtension = payload._fileName?.replace(/\.json$/i, "");
     const notebookName =
       payload.name ||
       payload.displayName ||
       payload.metadata?.name ||
       payload.notebook?.name ||
       payload.title ||
+      fileNameWithoutExtension ||
       "Untitled Notebook";
 
     console.log(`Extracted notebook name: "${notebookName}"`);
