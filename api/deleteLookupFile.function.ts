@@ -1,47 +1,49 @@
-// Delete Lookup File API
-// This is a placeholder implementation
-// In a full implementation, this would delete files from Dynatrace resource store
-
-interface DeleteRequest {
-  fileId: string;
-}
-
-interface DeleteResponse {
-  success: boolean;
-  message?: string;
-  error?: string;
-}
-
-export default async function (
-  request: Request
-): Promise<DeleteResponse> {
+/**
+ * Delete Lookup File Function
+ *
+ * Deletes a lookup file from the Resource Store in Grail
+ *
+ * @param filePath - Full path of the file to delete (must start with /lookups/)
+ * @returns Deletion result
+ */
+export default async function (filePath: string): Promise<unknown> {
   try {
-    const body: DeleteRequest = await request.json();
-    const { fileId } = body;
-
-    if (!fileId) {
+    // Validate file path
+    if (!filePath.startsWith("/lookups/")) {
       return {
         success: false,
-        error: "No fileId provided",
+        error: "File path must start with /lookups/",
       };
     }
 
-    console.log(`Processing file deletion: ${fileId}`);
+    // Make API call to delete
+    const response = await fetch(
+      "/platform/storage/resource-store/v1/files:delete",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          filePath,
+        }),
+      }
+    );
 
-    // Placeholder - in production, would delete from resource store
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Delete failed: ${response.status} - ${errorText}`);
+    }
+
     return {
       success: true,
-      message: `File deletion accepted: ${fileId}`,
+      filePath,
     };
   } catch (error) {
-    console.error("Error deleting file:", error);
-
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error occurred";
-
+    console.error("Error deleting lookup file:", error);
     return {
       success: false,
-      error: `Delete failed: ${errorMessage}`,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
     };
   }
 }

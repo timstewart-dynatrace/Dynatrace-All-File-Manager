@@ -1,47 +1,44 @@
-// Get Lookup File Content API
-// This is a placeholder implementation
-// In a full implementation, this would retrieve file content from Dynatrace resource store
+import { queryExecutionClient } from "@dynatrace-sdk/client-query";
 
-interface ContentRequest {
-  fileId: string;
-}
-
-interface ContentResponse {
-  success: boolean;
-  content?: string;
-  message?: string;
-  error?: string;
-}
-
-export default async function (
-  request: Request
-): Promise<ContentResponse | Uint8Array> {
+/**
+ * Get Lookup File Content Function
+ *
+ * Retrieves the content of a lookup file by querying it in Grail
+ *
+ * @param filePath - Full path of the file to retrieve (must start with /lookups/)
+ * @returns File content and metadata
+ */
+export default async function (filePath: string): Promise<unknown> {
   try {
-    const body: ContentRequest = await request.json();
-    const { fileId } = body;
-
-    if (!fileId) {
+    // Validate file path
+    if (!filePath.startsWith("/lookups/")) {
       return {
         success: false,
-        error: "No fileId provided",
+        error: "File path must start with /lookups/",
       };
     }
 
-    console.log(`Processing file download: ${fileId}`);
+    // Query to load the lookup file content
+    const contentQuery = `load \`${filePath}\``;
 
-    // Placeholder - in production, would fetch from resource store
-    const sampleContent = "name,value\nrow1,123\nrow2,456\n";
-    const encoder = new TextEncoder();
-    return encoder.encode(sampleContent);
-  } catch (error) {
-    console.error("Error fetching file content:", error);
-
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error occurred";
+    const contentResponse = await queryExecutionClient.queryExecute({
+      body: {
+        query: contentQuery,
+        requestTimeoutMilliseconds: 30000,
+        fetchTimeoutSeconds: 60,
+      },
+    });
 
     return {
+      success: true,
+      content: contentResponse?.result?.records || [],
+      recordCount: contentResponse?.result?.records?.length || 0,
+    };
+  } catch (error) {
+    console.error("Error fetching file content:", error);
+    return {
       success: false,
-      error: `Fetch failed: ${errorMessage}`,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
     };
   }
 }

@@ -1,7 +1,7 @@
 import { queryExecutionClient } from "@dynatrace-sdk/client-query";
 
 // Lookup Files API - List all lookup files
-// Queries Dynatrace system files via DQL
+// Queries Dynatrace system files via DQL using fetch dt.system.files
 
 interface LookupFile {
   id: string;
@@ -17,9 +17,10 @@ export default async function () {
   try {
     console.log("Fetching lookup files via DQL...");
 
-    // DQL query to fetch all system files
-    // dt.system.files contains all files in the system, we'll filter for lookups client-side
-    const query = `fetch dt.system.files`;
+    // Query to fetch all lookup files from Grail
+    const query = `fetch dt.system.files
+| filter startsWith(id, "/lookups/")
+| fields id, sizeInBytes, creationTime, modificationTime, status`;
 
     const response = await queryExecutionClient.queryExecute({
       body: {
@@ -29,34 +30,25 @@ export default async function () {
       },
     });
 
-    // Extract records from response and filter nulls
-    const rawRecords = response?.result?.records || [];
-    const records = rawRecords.filter((r) => r !== null);
+    // Extract records from response
+    const records = response?.result?.records || [];
+
+    console.log(`DQL returned ${records.length} records`);
 
     // Map the query records to our LookupFile interface
     const files: LookupFile[] = records
       .map((record: unknown) => {
         const r = record as Record<string, unknown>;
-        // Extract available fields from the record
         return {
-          id: (r.id as string) || (r.name as string) || (r.filename as string) || "",
-          name: (r.name as string) || (r.filename as string) || "",
-          size: typeof r.size === "number" ? r.size : typeof r.sizeInBytes === "number" ? r.sizeInBytes : undefined,
-          modifiedTime:
-            r.modifiedTime instanceof Date
-              ? r.modifiedTime.toISOString()
-              : r.modificationTime instanceof Date
-                ? r.modificationTime.toISOString()
-                : (r.modifiedTime as string | undefined) || (r.modificationTime as string | undefined),
-          records: typeof r.recordCount === "number" ? r.recordCount : undefined,
-          owner: r.owner ? String(r.owner) : r.createdBy ? String(r.createdBy) : undefined,
-          type: r.contentType ? String(r.contentType) : r.type ? String(r.type) : r.mimeType ? String(r.mimeType) : undefined,
+          id: (r.id as string) || "",
+          name: (r.id as string) || "",
+          size:
+            typeof r.sizeInBytes === "number" ? r.sizeInBytes : undefined,
+          modifiedTime: (r.modificationTime as string) || undefined,
+          type: "tabular/lookup",
         };
       })
-      .filter((f) => {
-        // Filter for lookup files (in /lookups/ directory)
-        return f.name.includes("/lookups/") || f.name.startsWith("lookups");
-      });
+      .filter((f) => f.id.length > 0);
 
     console.log(`Found ${files.length} lookup files`);
 
