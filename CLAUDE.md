@@ -59,10 +59,10 @@ esa-utilities/
 │   ├── notebooksShareList.function.ts # List notebook shares
 │   ├── dashboardsShare.function.ts   # Create share link for dashboard
 │   ├── dashboardsShareList.function.ts # List dashboard shares
-│   ├── list-lookup-files.ts          # List lookup files from Grail
-│   ├── upload-lookup-file.ts         # Upload file to Grail
-│   ├── delete-lookup-file.ts         # Delete lookup file from Grail
-│   └── get-lookup-file-content.ts    # Download lookup file content
+│   ├── listLookupFiles.function.ts   # List lookup files from Grail
+│   ├── uploadLookupFile.function.ts  # Upload file to Grail
+│   ├── deleteLookupFile.function.ts  # Delete lookup file from Grail
+│   └── getLookupFileContent.function.ts # Download lookup file content
 ├── ui/
 │   ├── app/
 │   │   ├── App.tsx                   # Main app with routing

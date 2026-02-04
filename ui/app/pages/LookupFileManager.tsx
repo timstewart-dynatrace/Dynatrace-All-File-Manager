@@ -125,7 +125,7 @@ export const LookupFileManager = () => {
   const fetchFiles = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/list-lookup-files", {
+      const response = await fetch("/api/listLookupFiles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
@@ -196,7 +196,7 @@ export const LookupFileManager = () => {
 
       for (const fileId of selectedArray) {
         try {
-          const response = await fetch("/api/delete-lookup-file", {
+          const response = await fetch("/api/deleteLookupFile", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ fileId }),
@@ -246,7 +246,7 @@ export const LookupFileManager = () => {
 
       for (const fileId of selectedArray) {
         try {
-          const response = await fetch("/api/get-lookup-file-content", {
+          const response = await fetch("/api/getLookupFileContent", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ fileId }),
@@ -288,7 +288,7 @@ export const LookupFileManager = () => {
           const formData = new FormData();
           formData.append("file", file);
 
-          const response = await fetch("/api/upload-lookup-file", {
+          const response = await fetch("/api/uploadLookupFile", {
             method: "POST",
             body: formData,
           });
