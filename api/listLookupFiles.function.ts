@@ -19,8 +19,8 @@ export default async function () {
 
     // Query to fetch all lookup files from Grail
     const query = `fetch dt.system.files
-| filter startsWith(id, "/lookups/")
-| fields id, sizeInBytes, creationTime, modificationTime, status`;
+| filter startsWith(name, "/lookups/")
+| fields name, size, modified.timestamp, records, user.email, type`;
 
     const response = await queryExecutionClient.queryExecute({
       body: {
@@ -40,12 +40,14 @@ export default async function () {
       .map((record: unknown) => {
         const r = record as Record<string, unknown>;
         return {
-          id: (r.id as string) || "",
-          name: (r.id as string) || "",
+          id: (r.name as string) || "",
+          name: (r.name as string) || "",
           size:
-            typeof r.sizeInBytes === "number" ? r.sizeInBytes : undefined,
-          modifiedTime: (r.modificationTime as string) || undefined,
-          type: "tabular/lookup",
+            typeof r.size === "number" ? r.size : undefined,
+          modifiedTime: (r["modified.timestamp"] as string) || undefined,
+          records: typeof r.records === "number" ? r.records : typeof r.records === "string" ? parseInt(r.records as string, 10) : undefined,
+          owner: (r["user.email"] as string) || undefined,
+          type: (r.type as string) || undefined,
         };
       })
       .filter((f) => f.id.length > 0);
