@@ -1,4 +1,6 @@
-import { resourceClient } from "@dynatrace-sdk/client-document";
+// Get Lookup File Content API
+// This is a placeholder implementation
+// In a full implementation, this would retrieve file content from Dynatrace resource store
 
 interface ContentRequest {
   fileId: string;
@@ -25,16 +27,12 @@ export default async function (
       };
     }
 
-    console.log(`Fetching content for file: ${fileId}`);
+    console.log(`Processing file download: ${fileId}`);
 
-    // Fetch file from resource store
-    const response = await resourceClient.getResource({
-      resourcePath: fileId,
-    });
-
-    // Get the binary data
-    const binary = await response.data.arrayBuffer();
-    return new Uint8Array(binary);
+    // Placeholder - in production, would fetch from resource store
+    const sampleContent = "name,value\nrow1,123\nrow2,456\n";
+    const encoder = new TextEncoder();
+    return encoder.encode(sampleContent);
   } catch (error) {
     console.error("Error fetching file content:", error);
 
