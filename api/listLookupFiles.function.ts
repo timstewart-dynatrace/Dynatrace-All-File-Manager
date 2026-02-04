@@ -18,9 +18,8 @@ export default async function () {
     console.log("Fetching lookup files via DQL...");
 
     // Query to fetch all lookup files from Grail
-    const query = `fetch dt.system.files
-| filter startsWith(name, "/lookups/")
-| fields name, size, modified.timestamp, records, user.email, type`;
+    // dt.system.files already returns only lookup files with /lookups/ prefix
+    const query = `fetch dt.system.files`;
 
     const response = await queryExecutionClient.queryExecute({
       body: {
