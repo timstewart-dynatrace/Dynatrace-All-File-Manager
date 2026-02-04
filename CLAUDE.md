@@ -58,7 +58,11 @@ esa-utilities/
 │   ├── notebooksShare.function.ts    # Create share link for notebook
 │   ├── notebooksShareList.function.ts # List notebook shares
 │   ├── dashboardsShare.function.ts   # Create share link for dashboard
-│   └── dashboardsShareList.function.ts # List dashboard shares
+│   ├── dashboardsShareList.function.ts # List dashboard shares
+│   ├── list-lookup-files.ts          # List lookup files from Grail
+│   ├── upload-lookup-file.ts         # Upload file to Grail
+│   ├── delete-lookup-file.ts         # Delete lookup file from Grail
+│   └── get-lookup-file-content.ts    # Download lookup file content
 ├── ui/
 │   ├── app/
 │   │   ├── App.tsx                   # Main app with routing
@@ -70,7 +74,8 @@ esa-utilities/
 │   │       ├── Home.tsx              # Landing page (displays version)
 │   │       ├── Data.tsx              # Data exploration page
 │   │       ├── NotebookManager.tsx   # Notebook management page
-│   │       └── DashboardManager.tsx  # Dashboard management page
+│   │       ├── DashboardManager.tsx  # Dashboard management page
+│   │       └── LookupFileManager.tsx # Lookup file management page
 │   ├── assets/                       # Images and icons (theme-aware)
 │   │   ├── notebook.svg / notebook_dark.svg
 │   │   └── dashboard.svg / dashboard_dark.svg
@@ -112,6 +117,7 @@ npm run info       # Show CLI and environment info
 | `/` | Home | Landing page with navigation cards |
 | `/notebook-manager` | NotebookManager | Bulk notebook management |
 | `/dashboard-manager` | DashboardManager | Bulk dashboard management |
+| `/lookup-file-manager` | LookupFileManager | Lookup file management in Grail |
 
 ## OAuth Scopes
 
@@ -183,6 +189,22 @@ The Dashboard Manager page provides identical functionality to Notebook Manager 
 - All features mirror Notebook Manager (including share link generation)
 - Uses `type=='dashboard'` filter for Document API
 - Links open dashboards in `dynatrace.dashboards` app using `getEnvironmentUrl()`
+
+## Lookup File Manager Features
+
+The Lookup File Manager page provides bulk operations for lookup files stored in Dynatrace Grail:
+
+- **Browse Files** - View all lookup files with metadata (size, record count, owner, modified date)
+- **Upload Files** - Upload CSV, JSON, JSONL, and XML files (max 100 MB)
+- **Download Files** - Download selected lookup files as CSV
+- **Delete Files** - Bulk delete lookup files with confirmation
+- **Filter** - Search files by name
+- **Sort** - Sort by name, size, modified time, or record count
+- **Select/Deselect** - Bulk selection of multiple files
+
+**Supported file formats:** CSV, JSON, JSONL, XML
+
+**Note:** Files are stored in the `/lookups/` directory in Grail's resource store.
 
 ## Environment Shares
 

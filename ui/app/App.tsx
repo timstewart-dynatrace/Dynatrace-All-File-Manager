@@ -5,6 +5,7 @@ import { Header } from "./components/Header";
 import { Home } from "./pages/Home";
 import { NotebookManager } from "./pages/NotebookManager";
 import { DashboardManager } from "./pages/DashboardManager";
+import { LookupFileManager } from "./pages/LookupFileManager";
 
 export const App = () => {
   return (
@@ -17,6 +18,7 @@ export const App = () => {
           <Route path="/" element={<Home />} />
           <Route path="/notebook-manager" element={<NotebookManager />} />
           <Route path="/dashboard-manager" element={<DashboardManager />} />
+          <Route path="/lookup-file-manager" element={<LookupFileManager />} />
         </Routes>
       </Page.Main>
     </Page>
