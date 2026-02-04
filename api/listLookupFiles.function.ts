@@ -18,7 +18,8 @@ export default async function () {
     console.log("Fetching lookup files via DQL...");
 
     // DQL query to fetch all system files
-    const query = `fetch dt.system.files | fields id, name, sizeInBytes, modificationTime, recordCount, createdBy, contentType`;
+    // dt.system.files contains all files in the system, we'll filter for lookups client-side
+    const query = `fetch dt.system.files`;
 
     const response = await queryExecutionClient.queryExecute({
       body: {
@@ -36,19 +37,20 @@ export default async function () {
     const files: LookupFile[] = records
       .map((record: unknown) => {
         const r = record as Record<string, unknown>;
+        // Extract available fields from the record
         return {
-          id: (r.id as string) || (r.name as string) || "",
-          name: (r.name as string) || "",
-          size:
-            typeof r.sizeInBytes === "number" ? r.sizeInBytes : undefined,
+          id: (r.id as string) || (r.name as string) || (r.filename as string) || "",
+          name: (r.name as string) || (r.filename as string) || "",
+          size: typeof r.size === "number" ? r.size : typeof r.sizeInBytes === "number" ? r.sizeInBytes : undefined,
           modifiedTime:
-            r.modificationTime instanceof Date
-              ? r.modificationTime.toISOString()
-              : (r.modificationTime as string | undefined),
-          records:
-            typeof r.recordCount === "number" ? r.recordCount : undefined,
-          owner: r.createdBy ? String(r.createdBy) : undefined,
-          type: r.contentType ? String(r.contentType) : undefined,
+            r.modifiedTime instanceof Date
+              ? r.modifiedTime.toISOString()
+              : r.modificationTime instanceof Date
+                ? r.modificationTime.toISOString()
+                : (r.modifiedTime as string | undefined) || (r.modificationTime as string | undefined),
+          records: typeof r.recordCount === "number" ? r.recordCount : undefined,
+          owner: r.owner ? String(r.owner) : r.createdBy ? String(r.createdBy) : undefined,
+          type: r.contentType ? String(r.contentType) : r.type ? String(r.type) : r.mimeType ? String(r.mimeType) : undefined,
         };
       })
       .filter((f) => {
