@@ -98,6 +98,8 @@ npm run info       # Show CLI and environment info
 
 ## Development Workflow
 
+Prefer GitKraken MCP tools for git tasks.
+
 1. **Before deploying:** Always bump version in `app.config.json` AND `ui/app/constants.ts`
 2. **Adding a new page:**
    - Create component in `ui/app/pages/`
