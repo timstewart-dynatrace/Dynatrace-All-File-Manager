@@ -1,49 +1,72 @@
-# Getting Started with your Dynatrace App
+# ESA Document Management
 
-This project was bootstrapped with Dynatrace App Toolkit.
+> **DISCLAIMER**: This information was AI generated and is provided "as-is" without warranty. It was generated as an independent, community-driven project and **not supported by Dynatrace**. Always refer to official [Dynatrace documentation](https://docs.dynatrace.com/docs) for the most current information.
 
-It uses React in combination with TypeScript, to provide great developer experience.
+A Dynatrace App providing document management utilities for Enterprise Solution Architects. Built with React and TypeScript using the Strato Design System.
+
+## Features
+
+- **Notebook Manager** - Bulk operations for Dynatrace notebooks (upload, export, visibility control, sharing)
+- **Dashboard Manager** - Bulk operations for Dynatrace dashboards (upload, export, visibility control, sharing)
+- **Lookup File Manager** - Manage lookup files in Dynatrace Grail (upload, download, delete)
+
+## Quick Start
+
+```bash
+# Install dependencies
+npm install
+
+# Start development server
+npm run start
+
+# Build for production
+npm run build
+
+# Deploy to Dynatrace
+npm run deploy
+```
+
+## Documentation
+
+- [Usage Guide](docs/USAGE.md) - Detailed usage instructions
+- [Changelog](CHANGELOG.md) - Version history
+
+## Tech Stack
+
+- React 18.3.1
+- TypeScript 5.9.3
+- React Router DOM 6.22.2
+- Dynatrace Strato Design System
+- Dynatrace App Toolkit (dt-app)
+- Dynatrace SDKs (client-document, client-query, etc.)
+
+## Development
+
+See [docs/USAGE.md](docs/USAGE.md) for detailed development instructions.
+
+### Version Management
+
+Before each deploy, update the version in TWO places:
+1. `app.config.json` - `"version": "x.y.z"`
+2. `ui/app/constants.ts` - `APP_VERSION = "x.y.z"`
 
 ## Available Scripts
 
-In the project directory, you can run:
+| Command | Description |
+|---------|-------------|
+| `npm run start` | Dev server with hot reload |
+| `npm run build` | Build for production |
+| `npm run lint` | Run ESLint |
+| `npm run deploy` | Build and deploy to Dynatrace |
+| `npm run info` | Show CLI and environment info |
+| `npm run generate:function` | Generate new serverless function |
+| `npm run update` | Update @dynatrace-scoped packages |
 
-### `npm run start`
+## Learn More
 
-Runs the app in the development mode. A new browser window with your running app will be automatically opened.
+- [Dynatrace Developer](https://dt-url.net/developers) - Platform documentation
+- [React Documentation](https://reactjs.org/) - React reference
 
-Edit a component file in `ui` and save it. The page will reload when you make changes. You may also see any errors in the console.
+## License
 
-### `npm run build`
-
-Builds the app for production to the `dist` folder. It correctly bundles your app in production mode and optimizes the build for the best performance.
-
-### `npm run deploy`
-
-Builds the app and deploys it to the specified environment in `app.config.json`.
-
-### `npm run uninstall
-
-Uninstalls the app from the specified environment in `app.config.json`.
-
-### `npm run generate:function`
-
-Generates a new serverless function for your app in the `api` folder.
-
-### `npm run update`
-
-Updates @dynatrace-scoped packages to the latest version and applies automatic migrations.
-
-### `npm run info`
-
-Outputs the CLI and environment information.
-
-### `npm run help`
-
-Outputs help for the Dynatrace App Toolkit.
-
-## Learn more
-
-You can find more information on how to use all the features of the new Dynatrace Platform in [Dynatrace Developer](https://dt-url.net/developers).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+This project is provided as-is for use by Enterprise Solution Architects.
