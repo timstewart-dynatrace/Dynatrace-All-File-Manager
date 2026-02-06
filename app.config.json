@@ -38,6 +38,18 @@
       {
         "name": "document:environment-shares:delete",
         "comment": "Delete environment shares for documents"
+      },
+      {
+        "name": "storage:files:read",
+        "comment": "Read lookup files from Grail"
+      },
+      {
+        "name": "storage:files:write",
+        "comment": "Upload lookup files to Grail"
+      },
+      {
+        "name": "storage:files:delete",
+        "comment": "Delete lookup files from Grail"
       }
     ]
   }

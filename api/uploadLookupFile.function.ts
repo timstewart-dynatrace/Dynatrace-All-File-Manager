@@ -2,15 +2,34 @@
  * Upload Lookup File Function
  *
  * Uploads a lookup file to the Resource Store in Grail
- * Requires a file path starting with /lookups/, file content, parse pattern, and lookup field
+ * Accepts a payload object with file details
+ *
+ * @param payload - Object containing filePath, content, parsePattern, and lookupField
+ * @returns Upload result
  */
-export default async function (
-  filePath: string,
-  content: string,
-  parsePattern: string,
-  lookupField: string
-): Promise<unknown> {
+
+interface UploadPayload {
+  filePath: string;
+  content: string;
+  parsePattern: string;
+  lookupField: string;
+  displayName?: string;
+  description?: string;
+  overwrite?: boolean;
+}
+
+export default async function (payload: UploadPayload): Promise<unknown> {
   try {
+    const { filePath, content, parsePattern, lookupField, displayName, description, overwrite } = payload;
+
+    // Validate required fields
+    if (!filePath || !content || !parsePattern || !lookupField) {
+      return {
+        success: false,
+        error: "Missing required fields: filePath, content, parsePattern, lookupField",
+      };
+    }
+
     // Validate file path
     if (!filePath.startsWith("/lookups/")) {
       return {
@@ -20,7 +39,7 @@ export default async function (
     }
 
     // Validate file path format
-    const pathRegex = /^\/[a-zA-Z0-9\-_.\/]+[a-zA-Z0-9]$/;
+    const pathRegex = /^\/[a-zA-Z0-9\-_./]+[a-zA-Z0-9]$/;
     if (!pathRegex.test(filePath)) {
       return {
         success: false,
@@ -37,15 +56,31 @@ export default async function (
     formData.append("content", blob, "file");
 
     // Add request parameters as JSON
-    const requestParams = {
+    const requestParams: Record<string, unknown> = {
       filePath,
       parsePattern,
       lookupField,
     };
+
+    // Only add overwrite if explicitly requested
+    if (overwrite) {
+      requestParams.overwrite = true;
+    }
+
+    // Add optional fields if provided
+    if (displayName) {
+      requestParams.displayName = displayName;
+    }
+    if (description) {
+      requestParams.description = description;
+    }
+
     formData.append(
       "request",
       new Blob([JSON.stringify(requestParams)], { type: "application/json" })
     );
+
+    console.log(`Uploading lookup file to ${filePath}`);
 
     // Make API call to upload
     const response = await fetch(
@@ -65,6 +100,7 @@ export default async function (
 
     return {
       success: true,
+      fileId: filePath,
       filePath,
       result,
     };

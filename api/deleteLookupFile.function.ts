@@ -3,11 +3,28 @@
  *
  * Deletes a lookup file from the Resource Store in Grail
  *
- * @param filePath - Full path of the file to delete (must start with /lookups/)
+ * @param payload - Object containing fileId (the file path)
  * @returns Deletion result
  */
-export default async function (filePath: string): Promise<unknown> {
+
+interface DeletePayload {
+  fileId: string;
+}
+
+export default async function (payload: DeletePayload): Promise<unknown> {
   try {
+    const { fileId } = payload;
+
+    // fileId is the full path (e.g., /lookups/myfile.csv)
+    const filePath = fileId;
+
+    if (!filePath) {
+      return {
+        success: false,
+        error: "fileId is required",
+      };
+    }
+
     // Validate file path
     if (!filePath.startsWith("/lookups/")) {
       return {
@@ -15,6 +32,8 @@ export default async function (filePath: string): Promise<unknown> {
         error: "File path must start with /lookups/",
       };
     }
+
+    console.log(`Deleting lookup file: ${filePath}`);
 
     // Make API call to delete
     const response = await fetch(
@@ -37,6 +56,7 @@ export default async function (filePath: string): Promise<unknown> {
 
     return {
       success: true,
+      fileId,
       filePath,
     };
   } catch (error) {
