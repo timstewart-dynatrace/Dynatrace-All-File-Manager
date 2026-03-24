@@ -4,7 +4,7 @@
 
 ## Overview
 
-ESA Document Management provides bulk document management capabilities for Dynatrace notebooks, dashboards, and lookup files.
+DT File Manager provides bulk file management capabilities for Dynatrace notebooks, dashboards, and lookup files.
 
 ## Getting Started
 
@@ -18,7 +18,7 @@ ESA Document Management provides bulk document management capabilities for Dynat
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd esa-utilities
+cd dt-file-manager
 
 # Install dependencies
 npm install

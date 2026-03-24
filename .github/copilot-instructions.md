@@ -1,4 +1,4 @@
-# Copilot instructions for ESA Utilities
+# Copilot instructions for DT File Manager
 
 ## Big picture
 - Dynatrace App Toolkit project: React/TypeScript UI in `ui/` + serverless App Functions in `api/`.

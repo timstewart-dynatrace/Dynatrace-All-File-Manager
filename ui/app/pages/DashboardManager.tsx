@@ -56,11 +56,26 @@ interface UploadResult {
   error?: string;
 }
 
+interface DeleteResult {
+  name: string;
+  id: string;
+  success: boolean;
+  message: string;
+}
+
+interface UpdateResult {
+  name: string;
+  id: string;
+  success: boolean;
+  message: string;
+}
+
 interface ApiResponse {
   body?: {
     dashboards?: Dashboard[];
     debug?: unknown;
     message?: string;
+    id?: string;
   };
   dashboards?: Dashboard[];
   id?: string;
@@ -78,6 +93,8 @@ export const DashboardManager = () => {
   const [toggling, setToggling] = useState(false);
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [uploadResults, setUploadResults] = useState<UploadResult[]>([]);
+  const [deleteResults, setDeleteResults] = useState<DeleteResult[]>([]);
+  const [updateResults, setUpdateResults] = useState<UpdateResult[]>([]);
   const [filterText, setFilterText] = useState("");
   const [sortField, setSortField] = useState<SortField>("displayName");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
@@ -300,12 +317,14 @@ export const DashboardManager = () => {
     }
 
     setDeleting(true);
+    setDeleteResults([]);
     const dashboardIds = Array.from(selectedDashboards);
     let successCount = 0;
     let failCount = 0;
 
     const deletedNames: string[] = [];
     const failedNames: string[] = [];
+    const results: DeleteResult[] = [];
 
     for (const id of dashboardIds) {
       const dashboard = dashboards.find((d) => d.id === id);
@@ -336,20 +355,39 @@ export const DashboardManager = () => {
         ) {
           successCount++;
           deletedNames.push(name);
+          results.push({
+            name,
+            id: responseData.body?.id || id,
+            success: true,
+            message: responseData.body?.message || "Dashboard deleted successfully",
+          });
         } else {
           console.error(`Failed to delete ${name}:`, responseData);
           failCount++;
           failedNames.push(name);
+          results.push({
+            name,
+            id,
+            success: false,
+            message: responseData.body?.message || "Failed to delete dashboard",
+          });
         }
       } catch (error) {
         console.error(`Error deleting ${name}:`, error);
         failCount++;
         failedNames.push(name);
+        results.push({
+          name,
+          id,
+          success: false,
+          message: error instanceof Error ? error.message : "Unknown error",
+        });
       }
     }
 
     setDeleting(false);
     setSelectedDashboards(new Set());
+    setDeleteResults(results);
 
     if (failCount === 0 && successCount > 0) {
       showToast({
@@ -543,12 +581,14 @@ export const DashboardManager = () => {
     }
 
     setToggling(true);
+    setUpdateResults([]);
     const dashboardIds = Array.from(selectedDashboards);
     let successCount = 0;
     let failCount = 0;
 
     const successNames: string[] = [];
     const failedNames: string[] = [];
+    const results: UpdateResult[] = [];
 
     for (const id of dashboardIds) {
       const dashboard = dashboards.find((d) => d.id === id);
@@ -579,20 +619,39 @@ export const DashboardManager = () => {
         ) {
           successCount++;
           successNames.push(name);
+          results.push({
+            name,
+            id: responseData.body?.id || id,
+            success: true,
+            message: responseData.body?.message || "Dashboard updated successfully",
+          });
         } else {
           console.error(`Failed to update ${name}:`, responseData);
           failCount++;
           failedNames.push(name);
+          results.push({
+            name,
+            id,
+            success: false,
+            message: responseData.body?.message || "Failed to update dashboard",
+          });
         }
       } catch (error) {
         console.error(`Error updating ${name}:`, error);
         failCount++;
         failedNames.push(name);
+        results.push({
+          name,
+          id,
+          success: false,
+          message: error instanceof Error ? error.message : "Unknown error",
+        });
       }
     }
 
     setToggling(false);
     setSelectedDashboards(new Set());
+    setUpdateResults(results);
 
     if (failCount === 0 && successCount > 0) {
       showToast({
@@ -1007,6 +1066,108 @@ export const DashboardManager = () => {
                     : `Delete Selected (${selectedDashboards.size})`}
                 </Button>
               </Flex>
+
+              {updateResults.length > 0 && (
+                <div
+                  style={{
+                    border: `1px solid ${Colors.Border.Neutral.Default}`,
+                    borderRadius: "4px",
+                    padding: "16px",
+                    maxHeight: "300px",
+                    overflowY: "auto",
+                    backgroundColor: Colors.Background.Surface.Default,
+                  }}
+                >
+                  {updateResults.map((result, index) => (
+                    <Flex
+                      key={index}
+                      gap={12}
+                      alignItems="center"
+                      padding={8}
+                      style={{
+                        borderBottom:
+                          index < updateResults.length - 1
+                            ? `1px solid ${Colors.Border.Neutral.Default}`
+                            : "none",
+                      }}
+                    >
+                      <Flex flexDirection="column" gap={4} style={{ flex: 1 }}>
+                        <Strong>{result.name}</Strong>
+                        {result.success ? (
+                          <Paragraph
+                            style={{
+                              fontSize: "12px",
+                              color: Colors.Text.Success.Default,
+                            }}
+                          >
+                            {result.message} - ID: {result.id}
+                          </Paragraph>
+                        ) : (
+                          <Paragraph
+                            style={{
+                              fontSize: "12px",
+                              color: Colors.Text.Critical.Default,
+                            }}
+                          >
+                            Error: {result.message} - ID: {result.id}
+                          </Paragraph>
+                        )}
+                      </Flex>
+                    </Flex>
+                  ))}
+                </div>
+              )}
+
+              {deleteResults.length > 0 && (
+                <div
+                  style={{
+                    border: `1px solid ${Colors.Border.Neutral.Default}`,
+                    borderRadius: "4px",
+                    padding: "16px",
+                    maxHeight: "300px",
+                    overflowY: "auto",
+                    backgroundColor: Colors.Background.Surface.Default,
+                  }}
+                >
+                  {deleteResults.map((result, index) => (
+                    <Flex
+                      key={index}
+                      gap={12}
+                      alignItems="center"
+                      padding={8}
+                      style={{
+                        borderBottom:
+                          index < deleteResults.length - 1
+                            ? `1px solid ${Colors.Border.Neutral.Default}`
+                            : "none",
+                      }}
+                    >
+                      <Flex flexDirection="column" gap={4} style={{ flex: 1 }}>
+                        <Strong>{result.name}</Strong>
+                        {result.success ? (
+                          <Paragraph
+                            style={{
+                              fontSize: "12px",
+                              color: Colors.Text.Success.Default,
+                            }}
+                          >
+                            {result.message} - ID: {result.id}
+                          </Paragraph>
+                        ) : (
+                          <Paragraph
+                            style={{
+                              fontSize: "12px",
+                              color: Colors.Text.Critical.Default,
+                            }}
+                          >
+                            Error: {result.message} - ID: {result.id}
+                          </Paragraph>
+                        )}
+                      </Flex>
+                    </Flex>
+                  ))}
+                </div>
+              )}
 
               {loading ? (
                 <Flex justifyContent="center" padding={32}>

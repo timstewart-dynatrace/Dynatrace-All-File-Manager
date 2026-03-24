@@ -1,4 +1,4 @@
-# ESA Document Management - Claude Code Instructions
+# DT File Manager - Claude Code Instructions
 
 > **DISCLAIMER**: This information was AI generated and is provided "as-is" without warranty. It was generated as an independent, community-driven project and **not supported by Dynatrace**. Always refer to official [Dynatrace documentation](https://docs.dynatrace.com/docs) for the most current information.
 
@@ -6,10 +6,10 @@
 
 ## Project Overview
 
-**ESA Document Management** is a Dynatrace App built with React and TypeScript using the Strato Design System. It provides document management utilities for Enterprise Solution Architects.
+**DT File Manager** is a Dynatrace App built with React and TypeScript using the Strato Design System. It provides file management utilities for Dynatrace.
 
-- **App ID:** `my.esa.utilities`
-- **Version:** 0.11.9
+- **App ID:** `my.dt.file.manager`
+- **Version:** 0.1.0
 - **Sprint Environment:** https://xzj8412h.sprint.apps.dynatracelabs.com/
 - **Production Environment:** https://yhu28601.apps.dynatrace.com/
 
