@@ -56,7 +56,10 @@ const noRestrictedImportsDynatraceStratoRule = [
   },
 ];
 
+const reactSettings = { settings: { react: { version: "detect" } } };
+
 export default defineConfig([
+  reactSettings,
   globalIgnores([
     "**/node_modules",
     "**/dist",

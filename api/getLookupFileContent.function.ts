@@ -66,13 +66,13 @@ export default async function (payload: GetContentPayload): Promise<unknown> {
       for (const record of records) {
         const row = record as Record<string, unknown>;
         const values = headers.map((h) => {
-          const val = row[h];
+          const val: unknown = row[h];
           if (val === null || val === undefined) return "";
           // Handle objects by JSON stringifying, primitives by converting to string
           if (typeof val === "object") {
             return escapeCSVField(JSON.stringify(val));
           }
-          return escapeCSVField(String(val));
+          return escapeCSVField(typeof val === "string" ? val : JSON.stringify(val));
         });
         csvContent += values.join(",") + "\n";
       }

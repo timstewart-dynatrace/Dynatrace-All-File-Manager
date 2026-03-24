@@ -96,13 +96,13 @@ export default async function (payload: UploadPayload): Promise<unknown> {
       throw new Error(`Upload failed: ${response.status} - ${errorText}`);
     }
 
-    const result = await response.json();
+    const result: unknown = await response.json();
 
     return {
       success: true,
       fileId: filePath,
       filePath,
-      result,
+      result: result as Record<string, unknown>,
     };
   } catch (error) {
     console.error("Error uploading lookup file:", error);

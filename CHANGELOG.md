@@ -9,42 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.11.9] - 2026-02-04
+## [0.1.0] - 2026-03-24
 
 ### Changed
-- Restructured project documentation to use `.claude/` directory pattern
-- Added modular instruction files in `.claude/rules/`
-- Updated README.md with proper project description and disclaimer
-- Created docs/USAGE.md usage guide
-
-## [0.11.8] - Previous Release
+- Renamed application from "ESA Document Management" to "DT File Manager"
+- New app ID: `my.dt.file.manager` (registered as a new app)
+- Reset version to 0.1.0
 
 ### Added
-- Lookup File Manager for Grail file operations
-- Upload, download, and delete lookup files
-- Support for CSV, JSON, JSONL, and XML formats
-
-## [0.11.0] - Earlier Release
-
-### Added
-- Dashboard Manager with full CRUD operations
-- Share link generation for dashboards
-- Visibility control for dashboards
-
-## [0.10.0] - Earlier Release
-
-### Added
-- Notebook Manager with bulk operations
-- Upload multiple notebook JSON files
-- Export selected notebooks
-- Make notebooks private/public
-- Generate share links for notebooks
-- Ownership awareness for modify/delete operations
-
-## [0.9.0] - Earlier Release
-
-### Added
-- Initial app structure with React and TypeScript
-- Home page with navigation cards
-- Basic routing setup
-- Theme-aware icons support
+- Delete confirmation results panel showing ID and message for each deleted record
+- Notebook Manager with bulk operations (upload, export, visibility control, sharing)
+- Dashboard Manager with bulk operations (upload, export, visibility control, sharing)
+- Lookup File Manager for Grail file operations (upload, download, delete)

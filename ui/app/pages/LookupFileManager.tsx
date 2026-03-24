@@ -22,6 +22,14 @@ import Colors from "@dynatrace/strato-design-tokens/colors";
 // Type for file content records
 type FileRecord = Record<string, unknown>;
 
+// Safely convert unknown values to string (avoids no-base-to-string lint errors)
+const toStr = (val: unknown): string => {
+  if (val === null || val === undefined) return "";
+  if (typeof val === "string") return val;
+  if (typeof val === "object") return JSON.stringify(val);
+  return String(val as string | number | boolean);
+};
+
 type SortField = "name" | "displayName" | "size" | "modifiedTime" | "records" | "owner";
 type SortDirection = "asc" | "desc";
 
@@ -44,6 +52,13 @@ interface UploadResult {
   success: boolean;
   fileId?: string;
   error?: string;
+}
+
+interface DeleteResult {
+  name: string;
+  id: string;
+  success: boolean;
+  message: string;
 }
 
 interface ApiResponse {
@@ -69,6 +84,7 @@ export const LookupFileManager = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [uploadResults, setUploadResults] = useState<UploadResult[]>([]);
+  const [deleteResults, setDeleteResults] = useState<DeleteResult[]>([]);
   const [uploadDisplayName, setUploadDisplayName] = useState("");
   const [uploadDescription, setUploadDescription] = useState("");
   const [uploadCustomPath, setUploadCustomPath] = useState("");
@@ -147,7 +163,7 @@ export const LookupFileManager = () => {
         headers: { "Content-Type": "application/json" },
       });
 
-      const data: ApiResponse = await response.json();
+      const data = (await response.json()) as ApiResponse;
 
       if (data.success && data.files) {
         setFiles(data.files);
@@ -220,12 +236,14 @@ export const LookupFileManager = () => {
     }
 
     setDeleting(true);
+    setDeleteResults([]);
     try {
       const selectedArray = Array.from(selectedFiles);
       let successCount = 0;
       let errorCount = 0;
       const deletedNames: string[] = [];
       const failedNames: string[] = [];
+      const results: DeleteResult[] = [];
 
       for (const fileId of selectedArray) {
         const file = files.find((f) => f.id === fileId);
@@ -238,20 +256,40 @@ export const LookupFileManager = () => {
             body: JSON.stringify({ fileId }),
           });
 
-          const data = (await response.json()) as { success?: boolean };
+          const data = (await response.json()) as { success?: boolean; fileId?: string; error?: string };
           if (data.success) {
             successCount++;
             deletedNames.push(name);
+            results.push({
+              name,
+              id: data.fileId || fileId,
+              success: true,
+              message: "Lookup file deleted successfully",
+            });
           } else {
             errorCount++;
             failedNames.push(name);
+            results.push({
+              name,
+              id: fileId,
+              success: false,
+              message: data.error || "Failed to delete lookup file",
+            });
           }
         } catch (error) {
           errorCount++;
           failedNames.push(name);
+          results.push({
+            name,
+            id: fileId,
+            success: false,
+            message: error instanceof Error ? error.message : "Unknown error",
+          });
           console.error("Error deleting file:", error);
         }
       }
+
+      setDeleteResults(results);
 
       if (errorCount === 0 && successCount > 0) {
         showToast({
@@ -294,7 +332,7 @@ export const LookupFileManager = () => {
           body: JSON.stringify({ fileId }),
         });
 
-        const data: ContentApiResponse = await response.json();
+        const data = (await response.json()) as ContentApiResponse;
 
         if (data.success && data.csvContent) {
           // Create and trigger download
@@ -479,7 +517,7 @@ export const LookupFileManager = () => {
 
             if (confirmOverwrite) {
               // Preserve existing metadata if user didn't specify new values
-              const overwriteBody = { ...requestBody, overwrite: true };
+              const overwriteBody: Record<string, unknown> = { ...requestBody, overwrite: true };
               if (!overwriteBody.displayName && existingName) {
                 overwriteBody.displayName = existingName;
               }
@@ -669,7 +707,7 @@ export const LookupFileManager = () => {
     }
 
     // Deep copy the file content for editing
-    setEditedData(JSON.parse(JSON.stringify(fileContent)));
+    setEditedData(JSON.parse(JSON.stringify(fileContent)) as FileRecord[]);
     setIsEditMode(true);
   };
 
@@ -764,7 +802,7 @@ export const LookupFileManager = () => {
           .map((h) => {
             const value = row[h];
             if (value === null || value === undefined) return "";
-            const strValue = String(value);
+            const strValue = toStr(value);
             // Escape values with commas, quotes, or newlines
             if (strValue.includes(",") || strValue.includes('"') || strValue.includes("\n")) {
               return `"${strValue.replace(/"/g, '""')}"`;
@@ -830,14 +868,14 @@ export const LookupFileManager = () => {
       // Check for rows with empty lookup field values
       const rowsWithEmptyLookupField = editedData.filter((row) => {
         const value = row[lookupField];
-        return value === null || value === undefined || String(value).trim() === "";
+        return value === null || value === undefined || toStr(value).trim() === "";
       });
 
       if (rowsWithEmptyLookupField.length > 0) {
         const rowIndices = editedData
           .map((row, idx) => {
             const value = row[lookupField];
-            return value === null || value === undefined || String(value).trim() === "" ? idx + 1 : null;
+            return value === null || value === undefined || toStr(value).trim() === "" ? idx + 1 : null;
           })
           .filter((idx) => idx !== null);
 
@@ -857,7 +895,7 @@ export const LookupFileManager = () => {
         // Remove rows with empty lookup field before saving
         const filteredData = editedData.filter((row) => {
           const value = row[lookupField];
-          return value !== null && value !== undefined && String(value).trim() !== "";
+          return value !== null && value !== undefined && toStr(value).trim() !== "";
         });
 
         if (filteredData.length === 0) {
@@ -881,7 +919,7 @@ export const LookupFileManager = () => {
               .map((h) => {
                 const value = row[h];
                 if (value === null || value === undefined) return "";
-                const strValue = String(value);
+                const strValue = toStr(value);
                 if (strValue.includes(",") || strValue.includes('"') || strValue.includes("\n")) {
                   return `"${strValue.replace(/"/g, '""')}"`;
                 }
@@ -925,7 +963,7 @@ export const LookupFileManager = () => {
         );
 
         if (response.ok) {
-          const responseData = await response.json().catch(() => ({}));
+          await response.json().catch(() => ({}));
           showToast({
             type: "success",
             title: "Changes saved",
@@ -981,18 +1019,18 @@ export const LookupFileManager = () => {
       console.log("[Save Debug] Response status:", response.status);
 
       if (response.ok) {
-        const responseData = await response.json().catch(() => ({}));
+        const responseData = (await response.json().catch(() => ({}))) as Record<string, unknown>;
         console.log("[Save Debug] Response data:", responseData);
 
-        // Log the actual stored records count
-        const storedRecords = (responseData.patternMatches || 0) - (responseData.skippedRecords || 0) + (responseData.skippedRecords || 0);
-        console.log("[Save Debug] Stored records (patternMatches):", responseData.patternMatches);
-        console.log("[Save Debug] Discarded duplicates:", responseData.discardedDuplicates);
+        const patternMatches = (responseData.patternMatches as number) || 0;
+        const discardedDuplicates = responseData.discardedDuplicates as number | undefined;
+        console.log("[Save Debug] Stored records (patternMatches):", patternMatches);
+        console.log("[Save Debug] Discarded duplicates:", discardedDuplicates);
 
         showToast({
           type: "success",
           title: "Changes saved",
-          message: `File updated: ${responseData.patternMatches || editedData.length} records uploaded`,
+          message: `File updated: ${patternMatches || editedData.length} records uploaded`,
         });
         setIsEditMode(false);
         setEditedData([]);
@@ -1008,7 +1046,7 @@ export const LookupFileManager = () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ fileId: editingFile.id }),
         });
-        const reloadData = await reloadResponse.json();
+        const reloadData = (await reloadResponse.json()) as { records?: Record<string, unknown>[] };
         console.log("[Save Debug] Reloaded records count:", reloadData.records?.length);
         console.log("[Save Debug] Reloaded records:", reloadData.records);
         // Log lookup field values to debug
@@ -1065,7 +1103,7 @@ export const LookupFileManager = () => {
           .map((h) => {
             const value = row[h];
             if (value === null || value === undefined) return "";
-            const strValue = String(value);
+            const strValue = toStr(value);
             if (strValue.includes(",") || strValue.includes('"') || strValue.includes("\n")) {
               return `"${strValue.replace(/"/g, '""')}"`;
             }
@@ -1356,6 +1394,57 @@ export const LookupFileManager = () => {
                     : `Delete Selected (${selectedFiles.size})`}
                 </Button>
               </Flex>
+
+              {deleteResults.length > 0 && (
+                <div
+                  style={{
+                    border: `1px solid ${Colors.Border.Neutral.Default}`,
+                    borderRadius: "4px",
+                    padding: "16px",
+                    maxHeight: "300px",
+                    overflowY: "auto",
+                    backgroundColor: Colors.Background.Surface.Default,
+                  }}
+                >
+                  {deleteResults.map((result, index) => (
+                    <Flex
+                      key={index}
+                      gap={12}
+                      alignItems="center"
+                      padding={8}
+                      style={{
+                        borderBottom:
+                          index < deleteResults.length - 1
+                            ? `1px solid ${Colors.Border.Neutral.Default}`
+                            : "none",
+                      }}
+                    >
+                      <Flex flexDirection="column" gap={4} style={{ flex: 1 }}>
+                        <Strong>{result.name}</Strong>
+                        {result.success ? (
+                          <Paragraph
+                            style={{
+                              fontSize: "12px",
+                              color: Colors.Text.Success.Default,
+                            }}
+                          >
+                            {result.message} - ID: {result.id}
+                          </Paragraph>
+                        ) : (
+                          <Paragraph
+                            style={{
+                              fontSize: "12px",
+                              color: Colors.Text.Critical.Default,
+                            }}
+                          >
+                            Error: {result.message} - ID: {result.id}
+                          </Paragraph>
+                        )}
+                      </Flex>
+                    </Flex>
+                  ))}
+                </div>
+              )}
 
               {loading ? (
                 <Flex justifyContent="center" padding={32}>
@@ -1921,7 +2010,7 @@ export const LookupFileManager = () => {
                                     <input
                                       type="text"
                                       title={`Edit ${header}`}
-                                      value={String(row[header] ?? "")}
+                                      value={toStr(row[header])}
                                       onChange={(e) =>
                                         updateCell(rowIndex, header, e.target.value)
                                       }
@@ -1945,9 +2034,9 @@ export const LookupFileManager = () => {
                                         textOverflow: "ellipsis",
                                         whiteSpace: "nowrap",
                                       }}
-                                      title={String(row[header] ?? "")}
+                                      title={toStr(row[header])}
                                     >
-                                      {String(row[header] ?? "")}
+                                      {toStr(row[header])}
                                     </span>
                                   )}
                                 </td>

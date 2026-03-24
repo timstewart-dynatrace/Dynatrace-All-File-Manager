@@ -1,8 +1,8 @@
-# ESA Document Management
+# DT File Manager
 
 > **DISCLAIMER**: This information was AI generated and is provided "as-is" without warranty. It was generated as an independent, community-driven project and **not supported by Dynatrace**. Always refer to official [Dynatrace documentation](https://docs.dynatrace.com/docs) for the most current information.
 
-A Dynatrace App providing document management utilities for Enterprise Solution Architects. Built with React and TypeScript using the Strato Design System.
+A Dynatrace App providing file management utilities. Built with React and TypeScript using the Strato Design System.
 
 ## Features
 
@@ -69,4 +69,4 @@ Before each deploy, update the version in TWO places:
 
 ## License
 
-This project is provided as-is for use by Enterprise Solution Architects.
+This project is provided as-is.

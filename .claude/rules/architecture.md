@@ -5,7 +5,7 @@
 ## Project Structure
 
 ```
-esa-utilities/
+dt-file-manager/
 ├── api/                              # Serverless functions (backend)
 │   ├── notebooks.function.ts         # Create notebook
 │   ├── notebooksDelete.function.ts   # Delete notebook

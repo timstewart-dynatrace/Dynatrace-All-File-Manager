@@ -6,7 +6,6 @@ import { Flex } from "@dynatrace/strato-components/layouts";
 import {
   Heading,
   Paragraph,
-  Strong,
 } from "@dynatrace/strato-components/typography";
 import { Card } from "../components/Card";
 import { APP_VERSION } from "../constants";
@@ -23,7 +22,7 @@ export const Home = () => {
         style={{ paddingBottom: 32 }}
       ></img>
 
-      <Heading>ESA Document Management</Heading>
+      <Heading>DT File Manager</Heading>
       <Paragraph>
     Additional functions for managing Dynatrace Notebooks and Dashboards.
       </Paragraph>
