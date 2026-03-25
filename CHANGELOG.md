@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-03-25
+
+### Added
+- Document Manager page for managing all document types (except notebooks, dashboards, launchpads)
+- Single file upload with metadata form (wraps non-conforming files as rawText)
+- Bulk upload with format validation (requires name and type fields)
+- Viewer modal for owned documents showing rawText content
+- Distinct SVG icons for Lookup Tables and Documents
+- Lookup Tables card on home page
+
+### Changed
+- Renamed application to "Dynatrace All File Manager"
+- Renamed tabs to plural without "Manager": Notebooks, Dashboards, Lookup Tables, Documents
+- Upload API now strips metadata fields from document content to preserve original files
+
 ## [0.1.0] - 2026-03-24
 
 ### Changed
