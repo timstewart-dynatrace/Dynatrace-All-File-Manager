@@ -28,6 +28,9 @@ export default async function (payload: DashboardPayload) {
       };
     }
 
+    // Strip _fileName before saving so the uploaded content remains unmodified
+    const { _fileName, ...dashboardData } = payload;
+
     // Log payload structure to debug name extraction
     console.log("Received payload keys:", Object.keys(payload));
     console.log("Payload sample:", JSON.stringify(payload).substring(0, 500));
@@ -38,20 +41,20 @@ export default async function (payload: DashboardPayload) {
     // - payload.metadata?.name (metadata section)
     // - payload.dashboard?.name (nested dashboard object)
     // - payload._fileName (fallback to uploaded filename without extension)
-    const fileNameWithoutExtension = payload._fileName?.replace(/\.json$/i, "");
+    const fileNameWithoutExtension = _fileName?.replace(/\.json$/i, "");
     const dashboardName =
-      payload.name ||
-      payload.displayName ||
-      payload.metadata?.name ||
-      payload.dashboard?.name ||
-      payload.title ||
+      dashboardData.name ||
+      dashboardData.displayName ||
+      dashboardData.metadata?.name ||
+      dashboardData.dashboard?.name ||
+      dashboardData.title ||
       fileNameWithoutExtension ||
       "Untitled Dashboard";
 
     console.log(`Extracted dashboard name: "${dashboardName}"`);
 
     // The dashboard content needs to be serialized as a Blob
-    const dashboardContent = new Blob([JSON.stringify(payload)], {
+    const dashboardContent = new Blob([JSON.stringify(dashboardData)], {
       type: "application/json",
     });
 

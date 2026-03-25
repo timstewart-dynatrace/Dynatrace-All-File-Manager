@@ -28,6 +28,9 @@ export default async function (payload: NotebookPayload) {
       };
     }
 
+    // Strip _fileName before saving so the uploaded content remains unmodified
+    const { _fileName, ...notebookData } = payload;
+
     // Log payload structure to debug name extraction
     console.log("Received payload keys:", Object.keys(payload));
     console.log("Payload sample:", JSON.stringify(payload).substring(0, 500));
@@ -38,20 +41,20 @@ export default async function (payload: NotebookPayload) {
     // - payload.metadata?.name (metadata section)
     // - payload.notebook?.name (nested notebook object)
     // - payload._fileName (fallback to uploaded filename without extension)
-    const fileNameWithoutExtension = payload._fileName?.replace(/\.json$/i, "");
+    const fileNameWithoutExtension = _fileName?.replace(/\.json$/i, "");
     const notebookName =
-      payload.name ||
-      payload.displayName ||
-      payload.metadata?.name ||
-      payload.notebook?.name ||
-      payload.title ||
+      notebookData.name ||
+      notebookData.displayName ||
+      notebookData.metadata?.name ||
+      notebookData.notebook?.name ||
+      notebookData.title ||
       fileNameWithoutExtension ||
       "Untitled Notebook";
 
     console.log(`Extracted notebook name: "${notebookName}"`);
 
     // The notebook content needs to be serialized as a Blob
-    const notebookContent = new Blob([JSON.stringify(payload)], {
+    const notebookContent = new Blob([JSON.stringify(notebookData)], {
       type: "application/json",
     });
 
