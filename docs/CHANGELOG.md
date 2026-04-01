@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-04-01
+
+### Fixed
+- Sticky table headers now use zIndex to prevent row content from overlapping on scroll (all tabs)
+- Lookup Tables: "View/Edit" button shows "View" for non-owned files
+- Refresh button clears all result panels (delete, upload, update) across all tabs
+
 ## [0.4.0] - 2026-04-01
 
 ### Added

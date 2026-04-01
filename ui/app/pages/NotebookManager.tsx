@@ -1250,6 +1250,7 @@ export const NotebookManager = () => {
                         backgroundColor: Colors.Background.Surface.Default,
                         position: "sticky",
                         top: 0,
+                        zIndex: 1,
                       }}
                     >
                       <tr>
