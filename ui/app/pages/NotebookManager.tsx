@@ -679,6 +679,9 @@ export const NotebookManager = () => {
 
   // Wrapper functions for async handlers
   const onRefreshClick = () => {
+    setDeleteResults([]);
+    setUploadResults([]);
+    setUpdateResults([]);
     void loadNotebooks();
   };
 

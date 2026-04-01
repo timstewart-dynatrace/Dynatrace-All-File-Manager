@@ -803,6 +803,9 @@ export const FileManager = () => {
   };
 
   const onRefreshClick = () => {
+    setDeleteResults([]);
+    setUploadResults([]);
+    setUpdateResults([]);
     void loadFiles();
   };
 

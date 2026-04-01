@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-04-01
+
+### Added
+- Refresh button now clears all result panels (delete, upload, update) across all tabs
+- Lookup Tables: "Edit Rows" button disabled for non-owned files
+- Lookup Tables: button label shows "View" instead of "View/Edit" for non-owned files
+
 ## [0.3.0] - 2026-04-01
 
 ### Added

@@ -679,6 +679,9 @@ export const DashboardManager = () => {
 
   // Wrapper functions for async handlers
   const onRefreshClick = () => {
+    setDeleteResults([]);
+    setUploadResults([]);
+    setUpdateResults([]);
     void loadDashboards();
   };
 

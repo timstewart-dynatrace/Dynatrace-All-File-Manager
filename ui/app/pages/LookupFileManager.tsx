@@ -645,6 +645,8 @@ export const LookupFileManager = () => {
 
   // Wrapper functions for async handlers
   const onRefreshClick = () => {
+    setDeleteResults([]);
+    setUploadResults([]);
     void fetchFiles();
   };
 
@@ -1717,7 +1719,7 @@ export const LookupFileManager = () => {
                                 <Button.Prefix>
                                   <EditIcon />
                                 </Button.Prefix>
-                                View/Edit
+                                {currentUserId != null && file.ownerId !== currentUserId ? "View" : "View/Edit"}
                               </Button>
                             </td>
                           </tr>
@@ -1904,7 +1906,8 @@ export const LookupFileManager = () => {
                     <Button
                       variant="emphasized"
                       onClick={enterEditMode}
-                      disabled={loadingContent || fileContent.length === 0}
+                      disabled={loadingContent || fileContent.length === 0 || (currentUserId != null && editingFile?.ownerId !== currentUserId)}
+                      title={currentUserId != null && editingFile?.ownerId !== currentUserId ? "Cannot edit lookup files you don't own" : undefined}
                     >
                       <Button.Prefix>
                         <EditIcon />

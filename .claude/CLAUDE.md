@@ -5,7 +5,7 @@
 **Dynatrace All File Manager** is a Dynatrace App built with React and TypeScript using the Strato Design System. It provides file management utilities for Dynatrace.
 
 - **App ID:** `my.dt.file.manager`
-- **Version:** 0.3.0
+- **Version:** 0.4.0
 - **Sprint Environment:** https://xzj8412h.sprint.apps.dynatracelabs.com/
 - **Production Environment:** https://yhu28601.apps.dynatrace.com/
 
