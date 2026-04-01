@@ -26,6 +26,18 @@
 | `/api/dashboardsShare` | POST | Create environment share link for dashboard |
 | `/api/dashboardsShareList` | POST | List all environment shares for dashboards |
 
+## Document/File APIs
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/filesList` | POST | List all documents with pagination and security info |
+| `/api/filesGet` | POST | Get document by ID (metadata + content combined) |
+| `/api/files` | POST | Create a new document |
+| `/api/filesDelete` | POST | Delete document by ID |
+| `/api/filesUpdate` | POST | Update document visibility (isPrivate) |
+| `/api/filesShare` | POST | Create environment share link for document |
+| `/api/filesShareList` | POST | List all environment shares for documents |
+
 ## Lookup File APIs
 
 | Endpoint | Method | Description |

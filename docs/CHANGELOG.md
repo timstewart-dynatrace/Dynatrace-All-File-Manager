@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Ownership-based access control on Lookup Tables tab (delete restricted to file owners)
+
+### Changed
+- Updated all documentation files to reflect current app name, version, and features
+
 ## [0.2.0] - 2026-03-25
 
 ### Added

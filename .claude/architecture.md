@@ -12,15 +12,22 @@ dt-file-manager/
 │   ├── notebooksGet.function.ts      # Get notebook by ID (metadata + content)
 │   ├── notebooksList.function.ts     # List notebooks with security info
 │   ├── notebooksUpdate.function.ts   # Update notebook visibility
+│   ├── notebooksShare.function.ts    # Create share link for notebook
+│   ├── notebooksShareList.function.ts # List notebook shares
 │   ├── dashboards.function.ts        # Create dashboard
 │   ├── dashboardsDelete.function.ts  # Delete dashboard
 │   ├── dashboardsGet.function.ts     # Get dashboard by ID (metadata + content)
 │   ├── dashboardsList.function.ts    # List dashboards with security info
 │   ├── dashboardsUpdate.function.ts  # Update dashboard visibility
-│   ├── notebooksShare.function.ts    # Create share link for notebook
-│   ├── notebooksShareList.function.ts # List notebook shares
 │   ├── dashboardsShare.function.ts   # Create share link for dashboard
 │   ├── dashboardsShareList.function.ts # List dashboard shares
+│   ├── files.function.ts             # Create document
+│   ├── filesDelete.function.ts       # Delete document
+│   ├── filesGet.function.ts          # Get document by ID (metadata + content)
+│   ├── filesList.function.ts         # List documents with security info
+│   ├── filesUpdate.function.ts       # Update document visibility
+│   ├── filesShare.function.ts        # Create share link for document
+│   ├── filesShareList.function.ts    # List document shares
 │   ├── listLookupFiles.function.ts   # List lookup files from Grail
 │   ├── uploadLookupFile.function.ts  # Upload file to Grail
 │   ├── deleteLookupFile.function.ts  # Delete lookup file from Grail
@@ -34,23 +41,29 @@ dt-file-manager/
 │   │   │   └── Header.tsx            # Navigation header
 │   │   └── pages/
 │   │       ├── Home.tsx              # Landing page (displays version)
-│   │       ├── Data.tsx              # Data exploration page
 │   │       ├── NotebookManager.tsx   # Notebook management page
 │   │       ├── DashboardManager.tsx  # Dashboard management page
-│   │       └── LookupFileManager.tsx # Lookup file management page
+│   │       ├── LookupFileManager.tsx # Lookup table management page
+│   │       └── FileManager.tsx       # Document management page
 │   ├── assets/                       # Images and icons (theme-aware)
+│   │   ├── Dynatrace_Logo.svg       # App branding
 │   │   ├── notebook.svg / notebook_dark.svg
-│   │   └── dashboard.svg / dashboard_dark.svg
+│   │   ├── dashboard.svg / dashboard_dark.svg
+│   │   ├── lookup.svg / lookup_dark.svg
+│   │   └── document.svg / document_dark.svg
 │   └── main.tsx                      # React entry point
 ├── docs/                             # Documentation
 │   └── USAGE.md                      # Usage guide
+│   └── CHANGELOG.md                  # Version history
 ├── .claude/                          # Claude Code instructions
 │   ├── CLAUDE.md                     # Main instructions
+│   └── DECISIONS.md                  # Main stack decisions
+│   └── architecture.md               # Main architecture
 │   └── rules/                        # Modular instruction files
+│   └── phases/                       # Implementations
 ├── app.config.json                   # Dynatrace app configuration
 ├── package.json                      # Dependencies and scripts
 ├── README.md                         # Project overview
-├── CHANGELOG.md                      # Version history
 ├── CLAUDE.md                         # Points to .claude/CLAUDE.md
 └── eslint.config.mjs                 # ESLint with security plugins
 ```
@@ -74,6 +87,7 @@ dt-file-manager/
 ## OAuth Scopes
 
 Configured in `app.config.json`:
+
 - `storage:logs:read` - Read log data
 - `storage:buckets:read` - Read bucket data
 - `document:documents:read` - Read notebooks/dashboards via Document API
@@ -82,6 +96,9 @@ Configured in `app.config.json`:
 - `document:environment-shares:read` - Read environment shares for documents
 - `document:environment-shares:write` - Create environment shares for documents
 - `document:environment-shares:delete` - Delete environment shares for documents
+- `storage:files:read` - Read lookup files from Grail
+- `storage:files:write` - Upload lookup files to Grail
+- `storage:files:delete` - Delete lookup files from Grail
 
 ## Components
 
@@ -111,6 +128,18 @@ The Dashboard Manager page provides identical functionality to Notebook Manager 
 - Uses `type=='dashboard'` filter for Document API
 - Links open dashboards in `dynatrace.dashboards` app using `getEnvironmentUrl()`
 
+### Document Manager (FileManager) Features
+
+The Document Manager page provides management for all document types except notebooks, dashboards, and launchpads:
+
+- **Single Upload** - Upload individual files with metadata form (wraps non-conforming files as rawText)
+- **Bulk Upload** - Upload multiple files with format validation (requires name and type fields)
+- **Viewer Modal** - View owned documents showing rawText content
+- **Visibility Control** - Toggle public/private visibility
+- **Share Links** - Generate shareable URLs for owned documents
+- **Delete Selected** - Bulk delete with confirmation
+- **Filter & Sort** - Search and sort documents
+
 ### Lookup File Manager Features
 
 The Lookup File Manager page provides bulk operations for lookup files stored in Dynatrace Grail:
@@ -118,7 +147,8 @@ The Lookup File Manager page provides bulk operations for lookup files stored in
 - **Browse Files** - View all lookup files with metadata (size, record count, owner, modified date)
 - **Upload Files** - Upload CSV, JSON, JSONL, and XML files (max 100 MB)
 - **Download Files** - Download selected lookup files as CSV
-- **Delete Files** - Bulk delete lookup files with confirmation
+- **Delete Files** - Bulk delete lookup files with confirmation (owners only)
+- **Ownership Awareness** - Delete button disabled when non-owned items selected; download always available
 - **Filter** - Search files by name
 - **Sort** - Sort by name, size, modified time, or record count
 - **Select/Deselect** - Bulk selection of multiple files
@@ -134,10 +164,18 @@ The Lookup File Manager page provides bulk operations for lookup files stored in
 The app uses `environmentSharesClient` from `@dynatrace-sdk/client-document` to create shareable URLs.
 
 **Key points:**
+
 - Only document owners can create shares
 - Users must "claim" a share to get access
 - One share per access type per document (one read, one read-write max)
 - Deleting a share revokes access from all claimers
+
+### Ownership Model
+
+All four manager tabs enforce the same ownership rule: **only download/export is available for items the user does not own.** Modify, delete, visibility, and share actions require ownership.
+
+- Notebooks, Dashboards, Documents: use `owner` field compared to `getCurrentUserDetails().id`
+- Lookup Files: use `ownerId` field compared to `getCurrentUserDetails().id`
 
 ### Document API Notes
 

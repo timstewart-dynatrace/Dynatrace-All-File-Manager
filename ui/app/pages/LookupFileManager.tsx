@@ -18,6 +18,7 @@ import {
   XmarkIcon,
 } from "@dynatrace/strato-icons";
 import Colors from "@dynatrace/strato-design-tokens/colors";
+import { getCurrentUserDetails } from "@dynatrace-sdk/app-environment";
 
 // Type for file content records
 type FileRecord = Record<string, unknown>;
@@ -101,6 +102,7 @@ export const LookupFileManager = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [loadingContent, setLoadingContent] = useState(false);
   const [savingChanges, setSavingChanges] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   // Filter and sort files
   const filteredAndSortedFiles = useMemo(() => {
@@ -186,10 +188,25 @@ export const LookupFileManager = () => {
     }
   }, []);
 
-  // Initial fetch
+  // Initial fetch and load current user
   useEffect(() => {
     void fetchFiles();
+    try {
+      const userDetails = getCurrentUserDetails();
+      setCurrentUserId(userDetails.id);
+    } catch (err) {
+      console.error("Failed to get current user details:", err);
+    }
   }, [fetchFiles]);
+
+  // Check if any selected file is not owned by current user
+  const hasNonOwnedSelected = useMemo(() => {
+    if (!currentUserId) return false;
+    return Array.from(selectedFiles).some((id) => {
+      const file = files.find((f) => f.id === id);
+      return file && file.ownerId !== currentUserId;
+    });
+  }, [selectedFiles, files, currentUserId]);
 
   // Handle file selection
   const toggleFileSelection = (fileId: string) => {
@@ -1384,7 +1401,8 @@ export const LookupFileManager = () => {
                 <Button
                   color="critical"
                   onClick={onDeleteClick}
-                  disabled={deleting || selectedFiles.size === 0}
+                  disabled={deleting || selectedFiles.size === 0 || hasNonOwnedSelected}
+                  title={hasNonOwnedSelected ? "Cannot delete lookup files you don't own" : undefined}
                 >
                   <Button.Prefix>
                     <DeleteIcon />
