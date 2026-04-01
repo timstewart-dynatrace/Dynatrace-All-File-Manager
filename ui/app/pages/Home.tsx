@@ -22,9 +22,9 @@ export const Home = () => {
         style={{ paddingBottom: 32 }}
       ></img>
 
-      <Heading>DT File Manager</Heading>
+      <Heading>Dynatrace All File Manager</Heading>
       <Paragraph>
-    Additional functions for managing Dynatrace Notebooks and Dashboards.
+    Additional functions for managing Dynatrace files and documents.
       </Paragraph>
 
       <Flex gap={48} paddingTop={64} flexFlow="wrap">
@@ -36,7 +36,7 @@ export const Home = () => {
               ? "./assets/notebook.svg"
               : "./assets/notebook_dark.svg"
           }
-          name="Notebook Manager"
+          name="Notebooks"
         />
         <Card
           href="/dashboard-manager"
@@ -46,7 +46,27 @@ export const Home = () => {
               ? "./assets/dashboard.svg"
               : "./assets/dashboard_dark.svg"
           }
-          name="Dashboard Manager"
+          name="Dashboards"
+        />
+        <Card
+          href="/lookup-file-manager"
+          inAppLink
+          imgSrc={
+            theme === "light"
+              ? "./assets/lookup.svg"
+              : "./assets/lookup_dark.svg"
+          }
+          name="Lookup Tables"
+        />
+        <Card
+          href="/file-manager"
+          inAppLink
+          imgSrc={
+            theme === "light"
+              ? "./assets/document.svg"
+              : "./assets/document_dark.svg"
+          }
+          name="Documents"
         />
       </Flex>
       <Paragraph style={{ marginTop: 48 }}>

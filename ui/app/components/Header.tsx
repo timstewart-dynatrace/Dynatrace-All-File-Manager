@@ -8,13 +8,16 @@ export const Header = () => {
       <AppHeader.NavItems>
         <AppHeader.AppNavLink as={Link} to="/" />
         <AppHeader.NavItem as={Link} to="/notebook-manager">
-          Notebook Manager
+          Notebooks
         </AppHeader.NavItem>
         <AppHeader.NavItem as={Link} to="/dashboard-manager">
-          Dashboard Manager
+          Dashboards
         </AppHeader.NavItem>
         <AppHeader.NavItem as={Link} to="/lookup-file-manager">
-          Lookup File Manager
+          Lookup Tables
+        </AppHeader.NavItem>
+        <AppHeader.NavItem as={Link} to="/file-manager">
+          Documents
         </AppHeader.NavItem>
       </AppHeader.NavItems>
     </AppHeader>

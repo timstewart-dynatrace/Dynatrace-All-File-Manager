@@ -6,6 +6,7 @@ import { Home } from "./pages/Home";
 import { NotebookManager } from "./pages/NotebookManager";
 import { DashboardManager } from "./pages/DashboardManager";
 import { LookupFileManager } from "./pages/LookupFileManager";
+import { FileManager } from "./pages/FileManager";
 
 export const App = () => {
   return (
@@ -19,6 +20,7 @@ export const App = () => {
           <Route path="/notebook-manager" element={<NotebookManager />} />
           <Route path="/dashboard-manager" element={<DashboardManager />} />
           <Route path="/lookup-file-manager" element={<LookupFileManager />} />
+          <Route path="/file-manager" element={<FileManager />} />
         </Routes>
       </Page.Main>
     </Page>
