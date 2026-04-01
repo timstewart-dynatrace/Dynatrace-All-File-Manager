@@ -3,7 +3,7 @@
   "environmentUrl": "https://yhu28601.apps.dynatrace.com/",
   "app": {
     "name": "Dynatrace All File Manager",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "description": "A collection of file management utilities for Dynatrace",
     "id": "my.dt.file.manager",
     "scopes": [

@@ -9,10 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-04-01
+
 ### Added
 - Ownership-based access control on Lookup Tables tab (delete restricted to file owners)
 
 ### Changed
+- Restructured `.claude/` instruction files with modular rules
 - Updated all documentation files to reflect current app name, version, and features
 
 ## [0.2.0] - 2026-03-25
