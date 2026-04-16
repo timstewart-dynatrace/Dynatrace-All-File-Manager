@@ -52,6 +52,14 @@ See `.claude/phases/` — always check the active phase file before starting wor
 <!-- @.claude/rules/python/python.md -->
 <!-- @.claude/rules/spring/spring.md -->
 
+## Skills
+
+@/Users/Shared/GitHub/PROJECTS/VisualCode-AI-Template/SKILLS/strato-design-system/SKILL.md
+@/Users/Shared/GitHub/PROJECTS/VisualCode-AI-Template/SKILLS/dynatrace-document-api/SKILL.md
+@/Users/Shared/GitHub/PROJECTS/VisualCode-AI-Template/SKILLS/dynatrace-lookup-tables/SKILL.md
+@/Users/Shared/GitHub/PROJECTS/VisualCode-AI-Template/SKILLS/dynatrace-dql/SKILL.md
+@/Users/Shared/GitHub/PROJECTS/VisualCode-AI-Template/SKILLS/dynatrace-apis/SKILL.md
+
 ## Project-Specific Constraints
 
 **ALWAYS** ask clarifying questions and **ALWAYS** provide a plan **BEFORE** making changes to ensure the end result matches intent.
