@@ -5,7 +5,7 @@
 **Dynatrace All File Manager** is a Dynatrace App built with React and TypeScript using the Strato Design System. It provides file management utilities for Dynatrace.
 
 - **App ID:** `my.dt.file.manager`
-- **Version:** 0.4.1
+- **Version:** 0.4.2
 - **Sprint Environment:** https://xzj8412h.sprint.apps.dynatracelabs.com/
 - **Production Environment:** https://yhu28601.apps.dynatrace.com/
 
@@ -54,11 +54,12 @@ See `.claude/phases/` — always check the active phase file before starting wor
 
 ## Skills
 
-@/Users/Shared/GitHub/PROJECTS/VisualCode-AI-Template/SKILLS/strato-design-system/SKILL.md
-@/Users/Shared/GitHub/PROJECTS/VisualCode-AI-Template/SKILLS/dynatrace-document-api/SKILL.md
-@/Users/Shared/GitHub/PROJECTS/VisualCode-AI-Template/SKILLS/dynatrace-lookup-tables/SKILL.md
-@/Users/Shared/GitHub/PROJECTS/VisualCode-AI-Template/SKILLS/dynatrace-dql/SKILL.md
-@/Users/Shared/GitHub/PROJECTS/VisualCode-AI-Template/SKILLS/dynatrace-apis/SKILL.md
+@/Users/Shared/GitHub/CLAUDE/Claude-AI-Template/SKILLS/strato-design-system/SKILL.md
+@/Users/Shared/GitHub/CLAUDE/Claude-AI-Template/SKILLS/dynatrace-document-api/SKILL.md
+@/Users/Shared/GitHub/CLAUDE/Claude-AI-Template/SKILLS/dynatrace-lookup-tables/SKILL.md
+@/Users/Shared/GitHub/CLAUDE/Claude-AI-Template/.agents/skills/dt-dql-essentials/SKILL.md
+@/Users/Shared/GitHub/CLAUDE/Claude-AI-Template/SKILLS/dynatrace-dql-examples/SKILL.md
+@/Users/Shared/GitHub/CLAUDE/Claude-AI-Template/SKILLS/dynatrace-apis/SKILL.md
 
 ## Project-Specific Constraints
 
