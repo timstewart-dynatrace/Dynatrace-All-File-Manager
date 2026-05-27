@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-05-27
+
+### Added
+- Custom app icon (`ui/assets/app-icon.svg`): three fanned documents on a Dynatrace purple-to-blue gradient, with content lines on the front document. Replaces the dt-app auto-generated "Dy" placeholder. Wired up via `app.icon` in `app.config.json`.
+
 ## [0.5.2] - 2026-05-27
 
 ### Fixed
