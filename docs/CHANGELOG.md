@@ -9,6 +9,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-05-27
+
+### Fixed
+- Uploads with Private unchecked now actually upload as public. `documentsClient.createDocument` ignores the `isPrivate` body field — documents are always created private. After create, the API now follows up with `updateDocument({isPrivate: false})` when the user requested public.
+
+## [0.5.1] - 2026-05-27
+
+### Added
+- Launchpad shape auto-detection on upload: JSON files containing a `containerList.containers[]` are recognized as launchpads even without the document-API wrapper. Single upload marks them as conforming and auto-fills `type="launchpad"` plus `name` from the JSON or filename. Bulk upload synthesizes the wrapper before posting.
+
+## [0.5.0] - 2026-05-27
+
+### Added
+- Document Manager now lists launchpads alongside other documents
+- "Open ↗" link on launchpad rows that opens the launchpad in the Launcher app (`/ui/apps/dynatrace.launcher/launchpad/<id>`)
+- Launchpad uploads supported via existing single and bulk upload flows (set `type: "launchpad"` in the JSON or in the single-upload form)
+
+### Changed
+- Updated Document Manager header copy to reflect launchpad inclusion
+
+## [0.4.2] - 2026-05-27
+
+### Changed
+- Bumped dependencies to highest versions compatible with current peers (Strato 3.5, Dynatrace SDKs, three.js 0.184, react-router 7.15, dt-app 1.9, typescript-eslint 8.60, others)
+- Migrated `Header.tsx` from deprecated `AppHeader.NavItems`/`NavItem`/`AppNavLink` to `AppHeader.Navigation`/`NavigationItem`/`Logo`
+
+### Notes
+- React 18, react-intl 6, TypeScript 5.9, @react-three/fiber 8, @react-three/drei 9, and ESLint 9 held back due to peer constraints from Strato, dt-app, and @microsoft/eslint-plugin-sdl
+
 ## [0.4.1] - 2026-04-01
 
 ### Fixed

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { getCurrentUserDetails } from "@dynatrace-sdk/app-environment";
+import { getCurrentUserDetails, getEnvironmentUrl } from "@dynatrace-sdk/app-environment";
 import { Page } from "@dynatrace/strato-components-preview/layouts";
 import {
   Heading,
@@ -85,6 +85,15 @@ const isConformingDocument = (data: Record<string, unknown>): boolean => {
     (field) => field in data && typeof data[field] === "string" && String(data[field]).trim() !== ""
   );
 };
+
+// Detects launchpad content shape (with or without the document API wrapper).
+// Launchpads have a distinctive `containerList.containers[]` layout structure.
+const looksLikeLaunchpad = (data: Record<string, unknown>): boolean => {
+  const cl = data.containerList as { containers?: unknown } | undefined;
+  return !!cl && Array.isArray(cl.containers);
+};
+
+const nameFromFile = (filename: string): string => filename.replace(/\.[^.]+$/, "");
 
 export const FileManager = () => {
   const [files, setFiles] = useState<FileDoc[]>([]);
@@ -391,11 +400,20 @@ export const FileManager = () => {
       }
 
       if (!isConformingDocument(fileData)) {
-        return {
-          fileName: file.name,
-          success: false,
-          error: "Missing required fields: name, type. Use Single Upload for non-conforming files.",
-        };
+        if (looksLikeLaunchpad(fileData)) {
+          // Launchpad content without wrapper — synthesize required metadata
+          fileData = {
+            ...fileData,
+            name: (typeof fileData.name === "string" && fileData.name) || nameFromFile(file.name),
+            type: "launchpad",
+          };
+        } else {
+          return {
+            fileName: file.name,
+            success: false,
+            error: "Missing required fields: name, type. Use Single Upload for non-conforming files.",
+          };
+        }
       }
 
       const response = await fetch("/api/files", {
@@ -506,10 +524,17 @@ export const FileManager = () => {
         setSingleType((parsed.type as string) || "");
         setSingleIsPrivate(parsed.isPrivate !== false);
         setSingleExternalId((parsed.externalId as string) || "");
+      } else if (looksLikeLaunchpad(parsed)) {
+        // Launchpad content without wrapper — auto-recognize and treat as conforming
+        setSingleFileConforms(true);
+        setSingleName((parsed.name as string) || nameFromFile(file.name));
+        setSingleType("launchpad");
+        setSingleIsPrivate(parsed.isPrivate !== false);
+        setSingleExternalId((parsed.externalId as string) || "");
       } else {
         setSingleFileConforms(false);
         // Pre-fill name from file if available in JSON
-        setSingleName((parsed.name as string) || file.name.replace(/\.[^.]+$/, ""));
+        setSingleName((parsed.name as string) || nameFromFile(file.name));
         setSingleType((parsed.type as string) || "");
       }
     } catch {
@@ -846,7 +871,7 @@ export const FileManager = () => {
         <Flex flexDirection="column" gap={8}>
           <Heading level={1}>Document Manager</Heading>
           <Paragraph>
-            Upload, manage, export, and delete document files. Shows all document types except notebooks, dashboards, and launchpads.
+            Upload, manage, export, and delete document files. Shows all document types except notebooks and dashboards (launchpads are included).
           </Paragraph>
         </Flex>
       </Page.Header>
@@ -1455,6 +1480,28 @@ export const FileManager = () => {
                                 </a>
                               ) : (
                                 <Strong>{file.displayName || "Unnamed"}</Strong>
+                              )}
+                              {file.type === "launchpad" && (
+                                <a
+                                  href={`${getEnvironmentUrl()}/ui/apps/dynatrace.launcher/launchpad/${file.id}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title="Open launchpad"
+                                  style={{
+                                    marginLeft: "8px",
+                                    color: Colors.Text.Primary.Default,
+                                    textDecoration: "none",
+                                    fontSize: "12px",
+                                  }}
+                                  onMouseEnter={(e) =>
+                                    (e.currentTarget.style.textDecoration = "underline")
+                                  }
+                                  onMouseLeave={(e) =>
+                                    (e.currentTarget.style.textDecoration = "none")
+                                  }
+                                >
+                                  Open ↗
+                                </a>
                               )}
                             </td>
                             <td
