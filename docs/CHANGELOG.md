@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-05-27
+
+### Fixed
+- Uploads with Private unchecked now actually upload as public. `documentsClient.createDocument` ignores the `isPrivate` body field — documents are always created private. After create, the API now follows up with `updateDocument({isPrivate: false})` when the user requested public.
+
 ## [0.5.1] - 2026-05-27
 
 ### Added

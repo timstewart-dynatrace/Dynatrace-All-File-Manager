@@ -71,17 +71,18 @@ export default async function (payload: FilePayload) {
       type: "application/json",
     });
 
+    // Note: documentsClient.createDocument always creates documents as private —
+    // the body's isPrivate field is not honored on create. To make a document
+    // public we must follow up with updateDocument.
     const body: {
       name: string;
       type: string;
       content: Blob;
-      isPrivate: boolean;
       externalId?: string;
     } = {
       name: fileName,
       type: fileType,
       content: fileContent,
-      isPrivate,
     };
 
     if (externalId) {
@@ -91,6 +92,32 @@ export default async function (payload: FilePayload) {
     const result = await documentsClient.createDocument({ body });
 
     console.log(`File created successfully with id: ${result.id}`);
+
+    if (isPrivate === false) {
+      try {
+        const created = (await documentsClient.getDocument({
+          id: result.id,
+        })) as { metadata?: { version?: string }; version?: string };
+        const version = created.metadata?.version || created.version || "";
+        await documentsClient.updateDocument({
+          id: result.id,
+          optimisticLockingVersion: version,
+          body: { isPrivate: false },
+        });
+        console.log(`File ${result.id} updated to public`);
+      } catch (updateErr: unknown) {
+        const e = updateErr as ApiError;
+        console.error(`Failed to set ${result.id} public after create:`, e);
+        return {
+          statusCode: 200,
+          body: {
+            id: result.id,
+            message: "File created but visibility update to public failed",
+            visibilityWarning: e.message || "updateDocument failed",
+          },
+        };
+      }
+    }
 
     return {
       statusCode: 200,
