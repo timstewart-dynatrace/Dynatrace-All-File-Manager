@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.4] - 2026-05-27
+
+### Changed
+- Redesigned app icon as a folder with five color-coded file tabs peeking out, one per managed type (notebook, dashboard, lookup, launchpad, document). Replaces the previous fanned-documents design which was hard to read at small sizes.
+
 ## [0.5.3] - 2026-05-27
 
 ### Added
