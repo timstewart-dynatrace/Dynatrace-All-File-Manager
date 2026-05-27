@@ -23,12 +23,14 @@ import { getCurrentUserDetails } from "@dynatrace-sdk/app-environment";
 // Type for file content records
 type FileRecord = Record<string, unknown>;
 
-// Safely convert unknown values to string (avoids no-base-to-string lint errors)
+// Safely convert unknown values to string. Object branch handles the only
+// case String() would produce "[object Object]"; remaining types are primitives.
 const toStr = (val: unknown): string => {
   if (val === null || val === undefined) return "";
   if (typeof val === "string") return val;
   if (typeof val === "object") return JSON.stringify(val);
-  return String(val as string | number | boolean);
+  // eslint-disable-next-line @typescript-eslint/no-base-to-string
+  return String(val);
 };
 
 type SortField = "name" | "displayName" | "size" | "modifiedTime" | "records" | "owner";

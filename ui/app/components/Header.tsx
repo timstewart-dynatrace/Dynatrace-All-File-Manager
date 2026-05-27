@@ -5,21 +5,21 @@ import { AppHeader } from "@dynatrace/strato-components-preview/layouts";
 export const Header = () => {
   return (
     <AppHeader>
-      <AppHeader.NavItems>
-        <AppHeader.AppNavLink as={Link} to="/" />
-        <AppHeader.NavItem as={Link} to="/notebook-manager">
+      <AppHeader.Navigation>
+        <AppHeader.Logo as={Link} to="/" />
+        <AppHeader.NavigationItem as={Link} to="/notebook-manager">
           Notebooks
-        </AppHeader.NavItem>
-        <AppHeader.NavItem as={Link} to="/dashboard-manager">
+        </AppHeader.NavigationItem>
+        <AppHeader.NavigationItem as={Link} to="/dashboard-manager">
           Dashboards
-        </AppHeader.NavItem>
-        <AppHeader.NavItem as={Link} to="/lookup-file-manager">
+        </AppHeader.NavigationItem>
+        <AppHeader.NavigationItem as={Link} to="/lookup-file-manager">
           Lookup Tables
-        </AppHeader.NavItem>
-        <AppHeader.NavItem as={Link} to="/file-manager">
+        </AppHeader.NavigationItem>
+        <AppHeader.NavigationItem as={Link} to="/file-manager">
           Documents
-        </AppHeader.NavItem>
-      </AppHeader.NavItems>
+        </AppHeader.NavigationItem>
+      </AppHeader.Navigation>
     </AppHeader>
   );
 };
