@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-05-27
+
+### Added
+- Launchpad shape auto-detection on upload: JSON files containing a `containerList.containers[]` are recognized as launchpads even without the document-API wrapper. Single upload marks them as conforming and auto-fills `type="launchpad"` plus `name` from the JSON or filename. Bulk upload synthesizes the wrapper before posting.
+
 ## [0.5.0] - 2026-05-27
 
 ### Added

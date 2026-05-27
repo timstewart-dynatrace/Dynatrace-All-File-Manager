@@ -86,6 +86,15 @@ const isConformingDocument = (data: Record<string, unknown>): boolean => {
   );
 };
 
+// Detects launchpad content shape (with or without the document API wrapper).
+// Launchpads have a distinctive `containerList.containers[]` layout structure.
+const looksLikeLaunchpad = (data: Record<string, unknown>): boolean => {
+  const cl = data.containerList as { containers?: unknown } | undefined;
+  return !!cl && Array.isArray(cl.containers);
+};
+
+const nameFromFile = (filename: string): string => filename.replace(/\.[^.]+$/, "");
+
 export const FileManager = () => {
   const [files, setFiles] = useState<FileDoc[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
@@ -391,11 +400,20 @@ export const FileManager = () => {
       }
 
       if (!isConformingDocument(fileData)) {
-        return {
-          fileName: file.name,
-          success: false,
-          error: "Missing required fields: name, type. Use Single Upload for non-conforming files.",
-        };
+        if (looksLikeLaunchpad(fileData)) {
+          // Launchpad content without wrapper — synthesize required metadata
+          fileData = {
+            ...fileData,
+            name: (typeof fileData.name === "string" && fileData.name) || nameFromFile(file.name),
+            type: "launchpad",
+          };
+        } else {
+          return {
+            fileName: file.name,
+            success: false,
+            error: "Missing required fields: name, type. Use Single Upload for non-conforming files.",
+          };
+        }
       }
 
       const response = await fetch("/api/files", {
@@ -506,10 +524,17 @@ export const FileManager = () => {
         setSingleType((parsed.type as string) || "");
         setSingleIsPrivate(parsed.isPrivate !== false);
         setSingleExternalId((parsed.externalId as string) || "");
+      } else if (looksLikeLaunchpad(parsed)) {
+        // Launchpad content without wrapper — auto-recognize and treat as conforming
+        setSingleFileConforms(true);
+        setSingleName((parsed.name as string) || nameFromFile(file.name));
+        setSingleType("launchpad");
+        setSingleIsPrivate(parsed.isPrivate !== false);
+        setSingleExternalId((parsed.externalId as string) || "");
       } else {
         setSingleFileConforms(false);
         // Pre-fill name from file if available in JSON
-        setSingleName((parsed.name as string) || file.name.replace(/\.[^.]+$/, ""));
+        setSingleName((parsed.name as string) || nameFromFile(file.name));
         setSingleType((parsed.type as string) || "");
       }
     } catch {
