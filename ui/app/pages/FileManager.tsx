@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { getCurrentUserDetails } from "@dynatrace-sdk/app-environment";
+import { getCurrentUserDetails, getEnvironmentUrl } from "@dynatrace-sdk/app-environment";
 import { Page } from "@dynatrace/strato-components-preview/layouts";
 import {
   Heading,
@@ -846,7 +846,7 @@ export const FileManager = () => {
         <Flex flexDirection="column" gap={8}>
           <Heading level={1}>Document Manager</Heading>
           <Paragraph>
-            Upload, manage, export, and delete document files. Shows all document types except notebooks, dashboards, and launchpads.
+            Upload, manage, export, and delete document files. Shows all document types except notebooks and dashboards (launchpads are included).
           </Paragraph>
         </Flex>
       </Page.Header>
@@ -1455,6 +1455,28 @@ export const FileManager = () => {
                                 </a>
                               ) : (
                                 <Strong>{file.displayName || "Unnamed"}</Strong>
+                              )}
+                              {file.type === "launchpad" && (
+                                <a
+                                  href={`${getEnvironmentUrl()}/ui/apps/dynatrace.launcher/launchpad/${file.id}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title="Open launchpad"
+                                  style={{
+                                    marginLeft: "8px",
+                                    color: Colors.Text.Primary.Default,
+                                    textDecoration: "none",
+                                    fontSize: "12px",
+                                  }}
+                                  onMouseEnter={(e) =>
+                                    (e.currentTarget.style.textDecoration = "underline")
+                                  }
+                                  onMouseLeave={(e) =>
+                                    (e.currentTarget.style.textDecoration = "none")
+                                  }
+                                >
+                                  Open ↗
+                                </a>
                               )}
                             </td>
                             <td

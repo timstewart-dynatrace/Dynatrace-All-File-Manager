@@ -29,7 +29,7 @@ interface ApiError {
 
 export default async function () {
   try {
-    console.log("Fetching files (non-notebook, non-dashboard, non-launchpad)...");
+    console.log("Fetching files (non-notebook, non-dashboard)...");
 
     const allDocuments: DocumentItem[] = [];
     let nextPageKey: string | undefined = undefined;
@@ -53,7 +53,7 @@ export default async function () {
         sort: string;
         pageKey?: string;
       } = {
-        filter: "type != 'notebook' and type != 'dashboard' and type != 'launchpad'",
+        filter: "type != 'notebook' and type != 'dashboard'",
         pageSize: 1000,
         sort: "-modificationInfo.lastModifiedTime",
       };

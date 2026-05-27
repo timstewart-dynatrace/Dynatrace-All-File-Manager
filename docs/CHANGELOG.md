@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-05-27
+
+### Added
+- Document Manager now lists launchpads alongside other documents
+- "Open ↗" link on launchpad rows that opens the launchpad in the Launcher app (`/ui/apps/dynatrace.launcher/launchpad/<id>`)
+- Launchpad uploads supported via existing single and bulk upload flows (set `type: "launchpad"` in the JSON or in the single-upload form)
+
+### Changed
+- Updated Document Manager header copy to reflect launchpad inclusion
+
 ## [0.4.2] - 2026-05-27
 
 ### Changed
