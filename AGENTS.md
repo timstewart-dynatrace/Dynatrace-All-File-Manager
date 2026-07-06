@@ -115,6 +115,11 @@ const result = await queryClient.queryExecute({ body: { query: 'fetch logs | cou
 - `@dynatrace-sdk/client-*`: Query API clients, every service has its own client package
 
 ## Common Tasks
-- **Add Route**: Update `Routes` in [ui/app/App.tsx](ui/app/App.tsx) and add nav item to [ui/app/components/Header.tsx](ui/app/components/Header.tsx)
+- **Add Route**: Register the page in [ui/app/features.ts](ui/app/features.ts) (`FEATURE_REGISTRY`) with its path, nav label, and card icons, then add the route in [ui/app/App.tsx](ui/app/App.tsx). Do **not** hand-edit [ui/app/components/Header.tsx](ui/app/components/Header.tsx) or [ui/app/pages/Home.tsx](ui/app/pages/Home.tsx) — both already render nav items/cards by iterating the registry, filtered by which features are enabled for the current build (see "Standalone Deploy Targets" below).
+- **Add a document-like manager page** (list/upload/delete/visibility/share for some resource type): reuse [ui/app/components/DocumentManager.tsx](ui/app/components/DocumentManager.tsx) with a config object instead of writing a new page — `NotebookManager.tsx` and `DashboardManager.tsx` are both ~16-line wrappers around it. Only write a bespoke page for a resource that doesn't fit that shape (e.g. `LookupFileManager.tsx`, which uses Grail/DQL instead of the Document API).
 - **Query Data**: Use `useDql` hook with DQL query string (Dynatrace Query Language)
 - **Style Components**: Import from `@dynatrace/strato-design-tokens/{colors,borders,box-shadows}` for design tokens
+
+## Standalone Deploy Targets
+
+This codebase deploys as one app (`npm run deploy`, all 4 tabs) or as four separate single-feature Dynatrace apps that coexist in the same environment — `npm run deploy:notebooks`, `deploy:dashboards`, `deploy:lookup`, `deploy:documents`. Each standalone app has its own `app.config.<feature>.json` (unique `app.id`, reduced OAuth scopes) and `ui/app/appTarget.<feature>.ts` (which features are enabled at build time); `scripts/with-target.mjs` swaps these in before running `dt-app`, then restores the combined-app originals. See `.claude/architecture.md` → "Deployment Targets" for the full mechanism before adding a 5th target or touching `App.tsx`/`Header.tsx`/`Home.tsx` routing logic.

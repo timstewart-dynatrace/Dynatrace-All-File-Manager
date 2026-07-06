@@ -4,17 +4,19 @@
 
 ## Development Workflow
 
-1. **Before deploying:** Always bump version in `app.config.json` AND `ui/app/constants.ts`
+1. **Before deploying:** Always bump version in `app.config.json` AND `ui/app/constants.ts` — run `npm run check:version` to verify (also runs automatically as a `predeploy` hook)
 2. **Adding a new page:**
    - Create component in `ui/app/pages/`
-   - Add route in `App.tsx`
-   - Add nav item in `Header.tsx`
-   - Optionally add card on `Home.tsx` with theme-aware icons
+   - Register it in `ui/app/features.ts` (`FEATURE_REGISTRY`) with its route path, nav label, and card icons — `App.tsx`, `Header.tsx`, and `Home.tsx` all read from this registry rather than hardcoding routes/nav-items/cards
+   - Add the route in `App.tsx` (guarded by `isFeatureEnabled(...)`, following the existing pattern)
+   - If the page manages a document-like resource (list/upload/delete/visibility/share), consider using `components/DocumentManager.tsx` with a config object instead of writing a new page from scratch — see `NotebookManager.tsx`/`DashboardManager.tsx` for the pattern
 3. **Adding API functions:**
    - Create `api/<name>.function.ts`
+   - Return `{ statusCode: number, body: {...} }` from every branch (success and error) — this is the response envelope every existing function uses; the frontend always reads `response.body`, not top-level fields
    - Call via `fetch('/api/<name>', { method: 'POST', body: JSON.stringify(payload) })`
 4. **Assets:** Use SVG for icons. Create both light and dark variants (e.g., `icon.svg`, `icon_dark.svg`)
 5. **Update Documentation:** When adding features, pages, or API functions, update relevant docs
+6. **Adding a standalone deploy target for a new feature:** create `app.config.<name>.json` (unique `app.id`/name/icon/scopes) and `ui/app/appTarget.<name>.ts` (one-line `ENABLED_FEATURES` array), then add `deploy:<name>`/`start:<name>` npm scripts following the existing pattern — see `.claude/architecture.md` → "Deployment Targets"
 
 ## Version Management
 
@@ -38,6 +40,15 @@ Follow [Semantic Versioning 2.0.0](https://semver.org/):
 
 ```bash
 npm run deploy
+```
+
+**Standalone single-feature apps** (coexist with the combined app, reduced OAuth scopes each):
+
+```bash
+npm run deploy:notebooks
+npm run deploy:dashboards
+npm run deploy:lookup
+npm run deploy:documents
 ```
 
 ## Branching Strategy

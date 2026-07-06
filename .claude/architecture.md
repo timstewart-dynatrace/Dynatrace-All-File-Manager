@@ -90,9 +90,9 @@ dt-file-manager/
 
 ## Tech Stack
 
-- React 18.3.1
-- TypeScript 5.9.3
-- React Router DOM 6.22.2
+- React 19
+- TypeScript 6
+- React Router DOM 7
 - Dynatrace Strato Design System
 - Dynatrace App Toolkit (dt-app)
 - Dynatrace SDKs (client-document, client-query, etc.)

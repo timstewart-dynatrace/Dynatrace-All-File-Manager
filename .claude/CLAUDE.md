@@ -4,8 +4,8 @@
 
 **Dynatrace All File Manager** is a Dynatrace App built with React and TypeScript using the Strato Design System. It provides file management utilities for Dynatrace.
 
-- **App ID:** `my.dt.file.manager`
-- **Version:** 0.5.4
+- **App ID:** `my.dt.file.manager` (combined app; four standalone single-feature apps also deploy from this codebase — see "Deployment Targets" below)
+- **Version:** 0.5.5
 - **Sprint Environment:** https://xzj8412h.sprint.apps.dynatracelabs.com/
 - **Production Environment:** https://yhu28601.apps.dynatrace.com/
 
@@ -91,10 +91,16 @@ npm run info       # Show CLI and environment info
 | Path                   | Component         | Description                        |
 | ---------------------- | ----------------- | ---------------------------------- |
 | `/`                    | Home              | Landing page with navigation cards |
-| `/notebook-manager`    | NotebookManager   | Bulk notebook management           |
-| `/dashboard-manager`   | DashboardManager  | Bulk dashboard management          |
+| `/notebook-manager`    | NotebookManager   | Bulk notebook management (thin wrapper around `components/DocumentManager.tsx`) |
+| `/dashboard-manager`   | DashboardManager  | Bulk dashboard management (thin wrapper around `components/DocumentManager.tsx`) |
 | `/lookup-file-manager` | LookupFileManager | Lookup table management in Grail   |
 | `/file-manager`        | FileManager       | Document management                |
+
+**Route registration is data-driven, not hardcoded in `App.tsx`.** `ui/app/features.ts` (`FEATURE_REGISTRY`) is the single source of truth for each route's path, nav label, and card icon. `App.tsx`, `Header.tsx`, and `Home.tsx` all filter against `ENABLED_FEATURES` (from `ui/app/appTarget.ts`) rather than hardcoding the route list — this is what allows the same code to build either the combined app or one of four standalone single-feature apps. **When adding a new page that should be part of this system, update `features.ts` first**, then add the route in `App.tsx`; do not add nav items to `Header.tsx` or cards to `Home.tsx` directly, they already read from the registry.
+
+### Deployment Targets
+
+This codebase deploys as the combined app (`npm run deploy`) or as one of four standalone apps that coexist in the same Dynatrace environment, each requesting only the OAuth scopes its feature needs: `npm run deploy:notebooks`, `deploy:dashboards`, `deploy:lookup`, `deploy:documents` (matching `start:*` scripts for local preview). See `.claude/architecture.md` → "Deployment Targets" for the full mechanism (`scripts/with-target.mjs` config swap) and `.claude/DECISIONS.md` (2026-07-06) for why this approach was chosen over separate repos.
 
 ## Dynatrace SDK Reference
 

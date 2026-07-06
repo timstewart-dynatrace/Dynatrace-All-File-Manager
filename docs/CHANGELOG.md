@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Standalone single-feature deploy targets: `npm run deploy:notebooks`, `deploy:dashboards`, `deploy:lookup`, `deploy:documents` (and matching `start:*` for local preview). Each deploys as its own Dynatrace app (`my.dt.notebook.manager`, etc.) coexisting alongside the combined app, requesting only the OAuth scopes its one feature needs. Implemented via a build-time feature flag (`ui/app/appTarget.ts`) and a config-swap script (`scripts/with-target.mjs`) — no code duplication, same source for all five deploy targets.
+- Unit tests (`npm test`, Node's built-in test runner + `tsx`, no external framework) covering `escapeCSVField`/`recordsToCSV` (`ui/app/utils/csv.ts`) and `looksLikeLaunchpad`/`nameFromFile` (`ui/app/utils/document.ts`), extracted from `getLookupFileContent.function.ts` and `FileManager.tsx` respectively.
+- `scripts/check-version-sync.mjs`, wired as a `predeploy` hook, fails the deploy if `app.config.json` and `ui/app/constants.ts` report different versions.
+- Permissions documentation (README.md, docs/USAGE.md) mapping each OAuth scope to the features it unlocks, plus the minimum scope set for read-only use.
+
+### Changed
+- Upgraded all dependencies to latest, including three major versions previously held back (see 0.4.2 note below, now resolved): React 18 → 19, TypeScript 5.9 → 6, ESLint 9 → 10. Also `@dynatrace-sdk/client-classic-environment-v2` 5 → 6, `react-intl` 6 → 10, `@react-three/fiber` 8 → 9, `@react-three/drei` 9 → 10, and all `@dynatrace/strato-*`/`@dynatrace-sdk/*` packages to latest minor. Required updating both tsconfigs' `moduleResolution` from `node` to `bundler` and removing the deprecated `baseUrl` option (TypeScript 6 requirement). `tsx` intentionally held at v3 — v4 requires Node 18+.
+- `NotebookManager.tsx` and `DashboardManager.tsx` (previously ~1,400 lines each, ~90% duplicated) are now thin ~16-line wrappers around a new shared `components/DocumentManager.tsx`.
+- All Lookup File API functions (`listLookupFiles`, `uploadLookupFile`, `deleteLookupFile`, `getLookupFileContent`) now return the same `{ statusCode, body }` envelope as the Document API functions, instead of a bare `{ success, error }` shape.
+- Removed two unused OAuth scopes (`storage:logs:read`, `storage:buckets:read`) left over from the app template — not referenced by any API function.
+
+### Fixed
+- `files.function.ts`: a document created successfully but whose follow-up "make public" call failed now returns `207` instead of a misleading `200`.
+- All delete/update API functions (notebooks, dashboards, files) now throw instead of silently passing an empty string as the optimistic-locking version when `getDocument` doesn't return one.
+- `getLookupFileContent.function.ts`: downloads that hit the 100,000-record query limit now report `truncated: true` instead of silently returning an incomplete file.
+- `uploadLookupFile.function.ts`: added path-traversal guard, a 10 MB content size limit, and an empty-content check.
 
 ## [0.5.4] - 2026-05-27
 
