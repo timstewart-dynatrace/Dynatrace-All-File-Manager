@@ -18,6 +18,9 @@ import {
   UnlockIcon,
   LinkIcon,
   CopyIcon,
+  EditIcon,
+  SaveIcon,
+  XmarkIcon,
 } from "@dynatrace/strato-icons";
 import Colors from "@dynatrace/strato-design-tokens/colors";
 
@@ -139,6 +142,9 @@ export const DocumentManager = ({ config }: DocumentManagerProps) => {
   const [shares, setShares] = useState<Map<string, EnvironmentShare>>(new Map());
   const [generatingShare, setGeneratingShare] = useState(false);
   const [alternateView, setAlternateView] = useState(false);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [renaming, setRenaming] = useState(false);
 
   // Filter and sort documents
   const filteredAndSortedDocuments = useMemo(() => {
@@ -713,6 +719,78 @@ export const DocumentManager = ({ config }: DocumentManagerProps) => {
 
     console.log(`Refreshing ${entityNameLower} list after visibility update...`);
     await loadDocuments();
+  };
+
+  const handleStartRename = (doc: Document) => {
+    setRenamingId(doc.id);
+    setRenameValue(doc.displayName || "");
+  };
+
+  const handleCancelRename = () => {
+    setRenamingId(null);
+    setRenameValue("");
+  };
+
+  const handleSaveRename = async (id: string) => {
+    const trimmed = renameValue.trim();
+    if (!trimmed) {
+      showToast({
+        title: "Name cannot be empty",
+        message: `Please enter a name for the ${entityNameLower}`,
+        type: "warning",
+      });
+      return;
+    }
+
+    const document = documents.find((n) => n.id === id);
+    if (trimmed === document?.displayName) {
+      handleCancelRename();
+      return;
+    }
+
+    setRenaming(true);
+    try {
+      const response = await fetch(apiUpdate, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id, name: trimmed }),
+      });
+
+      const responseData = (await response
+        .json()
+        .catch(() => ({}))) as ApiResponse;
+
+      if (
+        response.ok &&
+        responseData.body?.message?.includes("successfully")
+      ) {
+        showToast({
+          title: `${entityName} renamed`,
+          message: `Renamed to "${trimmed}"`,
+          type: "success",
+        });
+        handleCancelRename();
+        await loadDocuments();
+      } else {
+        showToast({
+          title: "Rename failed",
+          message:
+            (responseData.body?.message as string | undefined) ||
+            `Failed to rename ${entityNameLower}`,
+          type: "critical",
+        });
+      }
+    } catch (error) {
+      showToast({
+        title: "Rename failed",
+        message: error instanceof Error ? error.message : "Unknown error",
+        type: "critical",
+      });
+    } finally {
+      setRenaming(false);
+    }
   };
 
   // Wrapper functions for async handlers
@@ -1434,27 +1512,80 @@ export const DocumentManager = ({ config }: DocumentManagerProps) => {
                                 color: Colors.Text.Neutral.Default,
                               }}
                             >
-                              <a
-                                href={`${getEnvironmentUrl()}${dtLinkPath}${doc.id}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{
-                                  color: Colors.Text.Primary.Default,
-                                  textDecoration: "none",
-                                }}
-                                onMouseEnter={(e) =>
-                                  (e.currentTarget.style.textDecoration =
-                                    "underline")
-                                }
-                                onMouseLeave={(e) =>
-                                  (e.currentTarget.style.textDecoration =
-                                    "none")
-                                }
-                              >
-                                <Strong>
-                                  {doc.displayName || "Unnamed"}
-                                </Strong>
-                              </a>
+                              {renamingId === doc.id ? (
+                                <Flex gap={4} alignItems="center">
+                                  <input
+                                    type="text"
+                                    autoFocus
+                                    value={renameValue}
+                                    maxLength={128}
+                                    disabled={renaming}
+                                    onChange={(e) => setRenameValue(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") void handleSaveRename(doc.id);
+                                      if (e.key === "Escape") handleCancelRename();
+                                    }}
+                                    style={{
+                                      padding: "4px 8px",
+                                      fontSize: "13px",
+                                      border: `1px solid ${Colors.Border.Neutral.Default}`,
+                                      borderRadius: "4px",
+                                      backgroundColor: "transparent",
+                                      color: Colors.Text.Neutral.Default,
+                                      width: "180px",
+                                    }}
+                                  />
+                                  <Button
+                                    variant="default"
+                                    disabled={renaming}
+                                    onClick={() => void handleSaveRename(doc.id)}
+                                    title="Save"
+                                  >
+                                    <SaveIcon />
+                                  </Button>
+                                  <Button
+                                    variant="default"
+                                    disabled={renaming}
+                                    onClick={handleCancelRename}
+                                    title="Cancel"
+                                  >
+                                    <XmarkIcon />
+                                  </Button>
+                                </Flex>
+                              ) : (
+                                <Flex gap={4} alignItems="center">
+                                  <a
+                                    href={`${getEnvironmentUrl()}${dtLinkPath}${doc.id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{
+                                      color: Colors.Text.Primary.Default,
+                                      textDecoration: "none",
+                                    }}
+                                    onMouseEnter={(e) =>
+                                      (e.currentTarget.style.textDecoration =
+                                        "underline")
+                                    }
+                                    onMouseLeave={(e) =>
+                                      (e.currentTarget.style.textDecoration =
+                                        "none")
+                                    }
+                                  >
+                                    <Strong>
+                                      {doc.displayName || "Unnamed"}
+                                    </Strong>
+                                  </a>
+                                  {currentUserId && doc.owner === currentUserId && (
+                                    <Button
+                                      variant="default"
+                                      onClick={() => handleStartRename(doc)}
+                                      title={`Rename ${entityNameLower}`}
+                                    >
+                                      <EditIcon />
+                                    </Button>
+                                  )}
+                                </Flex>
+                              )}
                             </td>
                             <td
                               style={{

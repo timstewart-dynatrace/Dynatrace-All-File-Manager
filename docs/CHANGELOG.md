@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Rename for Notebooks and Dashboards: click the edit icon next to a document's name (owners only) to rename it inline, Enter to save / Escape to cancel. `notebooksUpdate`/`dashboardsUpdate` now accept an optional `name` field alongside the existing `isPrivate` field — both can be set in the same call, reusing the Document API's `updateDocument`, which already supported a `name` field. No new endpoint was needed.
 - Standalone single-feature deploy targets: `npm run deploy:notebooks`, `deploy:dashboards`, `deploy:lookup`, `deploy:documents` (and matching `start:*` for local preview). Each deploys as its own Dynatrace app (`my.dt.notebook.manager`, etc.) coexisting alongside the combined app, requesting only the OAuth scopes its one feature needs. Implemented via a build-time feature flag (`ui/app/appTarget.ts`) and a config-swap script (`scripts/with-target.mjs`) — no code duplication, same source for all five deploy targets.
 - Unit tests (`npm test`, Node's built-in test runner + `tsx`, no external framework) covering `escapeCSVField`/`recordsToCSV` (`ui/app/utils/csv.ts`) and `looksLikeLaunchpad`/`nameFromFile` (`ui/app/utils/document.ts`), extracted from `getLookupFileContent.function.ts` and `FileManager.tsx` respectively.
 - `scripts/check-version-sync.mjs`, wired as a `predeploy` hook, fails the deploy if `app.config.json` and `ui/app/constants.ts` report different versions.

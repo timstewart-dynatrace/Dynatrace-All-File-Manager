@@ -97,13 +97,14 @@ Navigate to `/notebook-manager` to manage Dynatrace notebooks.
 **Capabilities:**
 - **Bulk Upload** - Upload multiple notebook JSON files at once
 - **Export Selected** - Download notebooks as JSON files (includes metadata + content)
+- **Rename** - Click the edit icon next to a notebook's name to rename it inline (owners only)
 - **Make Private** - Set visibility to private (only you can see)
 - **Make Public** - Set visibility to public (warning: anyone can see)
 - **Delete Selected** - Bulk delete with confirmation
 - **Generate Share Links** - Create shareable URLs (owners only)
 
 **Tips:**
-- Only document owners can modify visibility, delete, or create share links
+- Only document owners can modify visibility, rename, delete, or create share links
 - Use the filter to search by name or owner
 - Click column headers to sort
 

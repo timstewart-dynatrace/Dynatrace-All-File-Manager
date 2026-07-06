@@ -10,7 +10,7 @@
 | `/api/notebooksGet` | POST | Get notebook by ID (metadata + content combined) |
 | `/api/notebooks` | POST | Create a new notebook |
 | `/api/notebooksDelete` | POST | Delete notebook by ID |
-| `/api/notebooksUpdate` | POST | Update notebook visibility (isPrivate) |
+| `/api/notebooksUpdate` | POST | Update notebook name and/or visibility (isPrivate) |
 | `/api/notebooksShare` | POST | Create environment share link for notebook |
 | `/api/notebooksShareList` | POST | List all environment shares for notebooks |
 
@@ -22,7 +22,7 @@
 | `/api/dashboardsGet` | POST | Get dashboard by ID (metadata + content combined) |
 | `/api/dashboards` | POST | Create a new dashboard |
 | `/api/dashboardsDelete` | POST | Delete dashboard by ID |
-| `/api/dashboardsUpdate` | POST | Update dashboard visibility (isPrivate) |
+| `/api/dashboardsUpdate` | POST | Update dashboard name and/or visibility (isPrivate) |
 | `/api/dashboardsShare` | POST | Create environment share link for dashboard |
 | `/api/dashboardsShareList` | POST | List all environment shares for dashboards |
 

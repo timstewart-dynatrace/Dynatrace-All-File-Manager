@@ -150,17 +150,20 @@ The Notebook Manager page provides bulk operations for Dynatrace notebooks:
 
 - **Bulk Upload** - Upload multiple notebook JSON files at once
 - **Export Selected** - Download selected notebooks as JSON files (metadata + content)
+- **Rename** - Inline rename via the edit icon next to the name (owners only); Enter to save, Escape to cancel
 - **Make Private** - Set selected notebooks to private (isPrivate: true)
 - **Make Public** - Set selected notebooks to public (isPrivate: false) - shows warning color
 - **Delete Selected** - Bulk delete notebooks with confirmation
 - **Visibility Column** - Shows PUBLIC (warning) or Private (success) badge
 - **Sortable Columns** - Click column headers to sort by name, owner, dates, or visibility
 - **Filter** - Search notebooks by name or owner
-- **Ownership Awareness** - Checkboxes always enabled, but modify/delete buttons disabled when non-owned items selected
+- **Ownership Awareness** - Checkboxes always enabled, but modify/delete/rename buttons disabled or hidden when non-owned items selected
 - **Generate Share Links** - Create shareable URLs for selected notebooks (owners only)
 - **Show Share URLs Toggle** - Display share URL column with copy-to-clipboard functionality
 
-**Note:** Only document owners can change visibility, delete documents, or create share links.
+**Note:** Only document owners can change visibility, delete documents, rename documents, or create share links.
+
+**Rename implementation:** the rename edit icon calls the same `apiUpdate` endpoint as the visibility toggle (`notebooksUpdate`/`dashboardsUpdate`), sending `{ id, name }` instead of `{ id, isPrivate }`. Both fields can be sent together — the Document API's `updateDocument` accepts `name` and `isPrivate` independently in the same call ("if not provided, no change happens" per the SDK), so no new endpoint was needed.
 
 ### Dashboard Manager Features
 

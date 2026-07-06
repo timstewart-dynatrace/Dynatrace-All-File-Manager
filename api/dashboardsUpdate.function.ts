@@ -13,6 +13,7 @@ interface ApiError {
 
 interface UpdatePayload {
   id: string;
+  name?: string;
   isPrivate?: boolean;
 }
 
@@ -23,6 +24,24 @@ export default async function (payload: UpdatePayload) {
         statusCode: 400,
         body: {
           message: "Dashboard ID is required",
+        },
+      };
+    }
+
+    if (payload.name === undefined && payload.isPrivate === undefined) {
+      return {
+        statusCode: 400,
+        body: {
+          message: "Nothing to update: provide name and/or isPrivate",
+        },
+      };
+    }
+
+    if (payload.name !== undefined && payload.name.trim().length === 0) {
+      return {
+        statusCode: 400,
+        body: {
+          message: "Dashboard name cannot be empty",
         },
       };
     }
@@ -38,24 +57,35 @@ export default async function (payload: UpdatePayload) {
     }
     console.log(`Document ${payload.id} has version: ${version}`);
 
-    // Update the document with the new isPrivate value
+    const updateBody: { name?: string; isPrivate?: boolean } = {};
+    if (payload.name !== undefined) updateBody.name = payload.name.trim();
+    if (payload.isPrivate !== undefined) updateBody.isPrivate = payload.isPrivate;
+
     await documentsClient.updateDocument({
       id: payload.id,
       optimisticLockingVersion: version,
-      body: {
-        isPrivate: payload.isPrivate,
-      },
+      body: updateBody,
     });
 
-    const visibility = payload.isPrivate ? "private" : "public";
-    console.log(`Dashboard ${payload.id} updated to ${visibility}`);
+    let message: string;
+    if (payload.name !== undefined && payload.isPrivate !== undefined) {
+      const visibility = payload.isPrivate ? "private" : "public";
+      message = `Dashboard renamed and updated to ${visibility} successfully`;
+    } else if (payload.name !== undefined) {
+      message = "Dashboard renamed successfully";
+    } else {
+      const visibility = payload.isPrivate ? "private" : "public";
+      message = `Dashboard updated to ${visibility} successfully`;
+    }
+    console.log(`Dashboard ${payload.id}: ${message}`);
 
     return {
       statusCode: 200,
       body: {
-        message: `Dashboard updated to ${visibility} successfully`,
+        message,
         id: payload.id,
-        isPrivate: payload.isPrivate,
+        ...(payload.name !== undefined && { name: updateBody.name }),
+        ...(payload.isPrivate !== undefined && { isPrivate: payload.isPrivate }),
       },
     };
   } catch (err: unknown) {
