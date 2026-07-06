@@ -1,0 +1,37 @@
+{
+  "$schema": "./.dt-app/app.config.schema.json",
+  "environmentUrl": "https://yhu28601.apps.dynatrace.com/",
+  "app": {
+    "name": "Dynatrace Dashboard Manager",
+    "version": "0.5.5",
+    "description": "Bulk management utilities for Dynatrace dashboards",
+    "id": "my.dt.dashboard.manager",
+    "icon": "ui/assets/dashboard.svg",
+    "scopes": [
+      {
+        "name": "document:documents:read",
+        "comment": "View and export dashboards"
+      },
+      {
+        "name": "document:documents:write",
+        "comment": "Upload dashboards; toggle visibility"
+      },
+      {
+        "name": "document:documents:delete",
+        "comment": "Delete dashboards"
+      },
+      {
+        "name": "document:environment-shares:read",
+        "comment": "View existing share links for dashboards"
+      },
+      {
+        "name": "document:environment-shares:write",
+        "comment": "Generate share links for dashboards"
+      },
+      {
+        "name": "document:environment-shares:delete",
+        "comment": "Revoke share links for dashboards"
+      }
+    ]
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "$schema": "./.dt-app/app.config.schema.json",
+  "environmentUrl": "https://yhu28601.apps.dynatrace.com/",
+  "app": {
+    "name": "Dynatrace Document Manager",
+    "version": "0.5.5",
+    "description": "Bulk management utilities for Dynatrace documents",
+    "id": "my.dt.document.manager",
+    "icon": "ui/assets/document.svg",
+    "scopes": [
+      {
+        "name": "document:documents:read",
+        "comment": "View and export documents"
+      },
+      {
+        "name": "document:documents:write",
+        "comment": "Upload documents; toggle visibility"
+      },
+      {
+        "name": "document:documents:delete",
+        "comment": "Delete documents"
+      },
+      {
+        "name": "document:environment-shares:read",
+        "comment": "View existing share links for documents"
+      },
+      {
+        "name": "document:environment-shares:write",
+        "comment": "Generate share links for documents"
+      },
+      {
+        "name": "document:environment-shares:delete",
+        "comment": "Revoke share links for documents"
+      }
+    ]
+  }
+}

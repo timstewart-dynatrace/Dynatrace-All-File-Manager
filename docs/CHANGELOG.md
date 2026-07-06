@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Standalone single-feature deploy targets: `npm run deploy:notebooks`, `deploy:dashboards`, `deploy:lookup`, `deploy:documents` (and matching `start:*` for local preview). Each deploys as its own Dynatrace app (`my.dt.notebook.manager`, etc.) coexisting alongside the combined app, requesting only the OAuth scopes its one feature needs. Implemented via a build-time feature flag (`ui/app/appTarget.ts`) and a config-swap script (`scripts/with-target.mjs`) — no code duplication, same source for all five deploy targets.
+
 ## [0.5.4] - 2026-05-27
 
 ### Changed

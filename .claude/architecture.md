@@ -34,15 +34,28 @@ dt-file-manager/
 │   └── getLookupFileContent.function.ts # Download lookup file content
 ├── ui/
 │   ├── app/
-│   │   ├── App.tsx                   # Main app with routing
+│   │   ├── App.tsx                   # Main app with routing (filtered by ENABLED_FEATURES)
 │   │   ├── constants.ts              # App constants (APP_VERSION)
+│   │   ├── appTarget.ts              # Combined-app feature flag (all 4 enabled) — swap target
+│   │   ├── appTarget.notebooks.ts    # Single-feature variant: notebooks only
+│   │   ├── appTarget.dashboards.ts   # Single-feature variant: dashboards only
+│   │   ├── appTarget.lookup.ts       # Single-feature variant: lookup only
+│   │   ├── appTarget.documents.ts    # Single-feature variant: documents only
+│   │   ├── features.ts               # Feature registry: route paths, nav labels, card icons
+│   │   ├── types/
+│   │   │   └── appFeature.ts         # AppFeature type (not swapped — shared by all appTarget*.ts)
 │   │   ├── components/
 │   │   │   ├── Card.tsx              # Reusable card component
-│   │   │   └── Header.tsx            # Navigation header
+│   │   │   ├── Header.tsx            # Navigation header (filters items by ENABLED_FEATURES)
+│   │   │   └── DocumentManager.tsx   # Shared manager component (config-driven)
+│   │   ├── utils/
+│   │   │   ├── csv.ts                # escapeCSVField, recordsToCSV
+│   │   │   ├── document.ts           # looksLikeLaunchpad, nameFromFile
+│   │   │   └── __tests__/            # Unit tests for the above
 │   │   └── pages/
-│   │       ├── Home.tsx              # Landing page (displays version)
-│   │       ├── NotebookManager.tsx   # Notebook management page
-│   │       ├── DashboardManager.tsx  # Dashboard management page
+│   │       ├── Home.tsx              # Landing page (cards filtered by ENABLED_FEATURES)
+│   │       ├── NotebookManager.tsx   # Thin wrapper around DocumentManager
+│   │       ├── DashboardManager.tsx  # Thin wrapper around DocumentManager
 │   │       ├── LookupFileManager.tsx # Lookup table management page
 │   │       └── FileManager.tsx       # Document management page
 │   ├── assets/                       # Images and icons (theme-aware)
@@ -52,6 +65,9 @@ dt-file-manager/
 │   │   ├── lookup.svg / lookup_dark.svg
 │   │   └── document.svg / document_dark.svg
 │   └── main.tsx                      # React entry point
+├── scripts/
+│   ├── check-version-sync.mjs        # Validates app.config.json / constants.ts versions match
+│   └── with-target.mjs               # Swaps in a single-feature config, runs a command, restores
 ├── docs/                             # Documentation
 │   └── USAGE.md                      # Usage guide
 │   └── CHANGELOG.md                  # Version history
@@ -61,7 +77,11 @@ dt-file-manager/
 │   └── architecture.md               # Main architecture
 │   └── rules/                        # Modular instruction files
 │   └── phases/                       # Implementations
-├── app.config.json                   # Dynatrace app configuration
+├── app.config.json                   # Dynatrace app configuration (combined app)
+├── app.config.notebooks.json         # Standalone Notebook Manager app config
+├── app.config.dashboards.json        # Standalone Dashboard Manager app config
+├── app.config.lookup.json            # Standalone Lookup Table Manager app config
+├── app.config.documents.json         # Standalone Document Manager app config
 ├── package.json                      # Dependencies and scripts
 ├── README.md                         # Project overview
 ├── CLAUDE.md                         # Points to .claude/CLAUDE.md
@@ -99,6 +119,28 @@ Configured in `app.config.json`. All scopes are actively used — no unused temp
 | `storage:files:read` | Browse and download in Lookup File Manager |
 | `storage:files:write` | Upload in Lookup File Manager |
 | `storage:files:delete` | Delete in Lookup File Manager |
+
+Standalone single-feature apps (see below) request only the scopes their one feature needs — not this full list.
+
+## Deployment Targets
+
+This codebase can be deployed as the combined app (all 4 tabs) or as one of four standalone single-feature apps, coexisting in the same Dynatrace environment. Same source, same API functions — only `app.config.json` and `ui/app/appTarget.ts` differ per target.
+
+| Target | Command | App ID | Scopes requested |
+|--------|---------|--------|-------------------|
+| Combined (default) | `npm run deploy` | `my.dt.file.manager` | All 9 scopes above |
+| Notebooks only | `npm run deploy:notebooks` | `my.dt.notebook.manager` | `document:documents:*`, `document:environment-shares:*` |
+| Dashboards only | `npm run deploy:dashboards` | `my.dt.dashboard.manager` | `document:documents:*`, `document:environment-shares:*` |
+| Lookup Tables only | `npm run deploy:lookup` | `my.dt.lookup.manager` | `storage:files:*` |
+| Documents only | `npm run deploy:documents` | `my.dt.document.manager` | `document:documents:*`, `document:environment-shares:*` |
+
+Local preview for a single-feature build: `npm run start:notebooks` (and `start:dashboards`, `start:lookup`, `start:documents`).
+
+**How it works:** `scripts/with-target.mjs <target> <command>` copies `app.config.<target>.json` over `app.config.json` and `ui/app/appTarget.<target>.ts` over `ui/app/appTarget.ts`, runs `<command>`, then restores both originals — on success, failure, or Ctrl+C. `ui/app/features.ts` reads `ENABLED_FEATURES` from `appTarget.ts` and is the single source of truth `App.tsx`, `Header.tsx`, and `Home.tsx` all filter against. When exactly one feature is enabled, `/` redirects straight to that manager instead of showing Home.
+
+**Adding a fifth target:** create `app.config.<name>.json` (new `app.id`/name/icon/scopes) and `ui/app/appTarget.<name>.ts` (one-line `ENABLED_FEATURES` array), then add `deploy:<name>` / `start:<name>` npm scripts following the existing pattern. No changes needed to `App.tsx`, `Header.tsx`, `Home.tsx`, or `features.ts` unless the new target needs a route that doesn't already exist in `FEATURE_REGISTRY`.
+
+See the "Standalone Single-Feature Apps via Config Swap" entry in `.claude/DECISIONS.md` (2026-07-06) for why this approach was chosen over separate repos.
 
 ## Components
 

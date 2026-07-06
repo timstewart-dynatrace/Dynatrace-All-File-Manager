@@ -1,0 +1,25 @@
+{
+  "$schema": "./.dt-app/app.config.schema.json",
+  "environmentUrl": "https://yhu28601.apps.dynatrace.com/",
+  "app": {
+    "name": "Dynatrace Lookup Table Manager",
+    "version": "0.5.5",
+    "description": "Bulk management utilities for Dynatrace lookup tables in Grail",
+    "id": "my.dt.lookup.manager",
+    "icon": "ui/assets/lookup.svg",
+    "scopes": [
+      {
+        "name": "storage:files:read",
+        "comment": "Browse and download lookup files from Grail"
+      },
+      {
+        "name": "storage:files:write",
+        "comment": "Upload lookup files to Grail"
+      },
+      {
+        "name": "storage:files:delete",
+        "comment": "Delete lookup files from Grail"
+      }
+    ]
+  }
+}

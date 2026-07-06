@@ -1,0 +1,37 @@
+{
+  "$schema": "./.dt-app/app.config.schema.json",
+  "environmentUrl": "https://yhu28601.apps.dynatrace.com/",
+  "app": {
+    "name": "Dynatrace Notebook Manager",
+    "version": "0.5.5",
+    "description": "Bulk management utilities for Dynatrace notebooks",
+    "id": "my.dt.notebook.manager",
+    "icon": "ui/assets/notebook.svg",
+    "scopes": [
+      {
+        "name": "document:documents:read",
+        "comment": "View and export notebooks"
+      },
+      {
+        "name": "document:documents:write",
+        "comment": "Upload notebooks; toggle visibility"
+      },
+      {
+        "name": "document:documents:delete",
+        "comment": "Delete notebooks"
+      },
+      {
+        "name": "document:environment-shares:read",
+        "comment": "View existing share links for notebooks"
+      },
+      {
+        "name": "document:environment-shares:write",
+        "comment": "Generate share links for notebooks"
+      },
+      {
+        "name": "document:environment-shares:delete",
+        "comment": "Revoke share links for notebooks"
+      }
+    ]
+  }
+}

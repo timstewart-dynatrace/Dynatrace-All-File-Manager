@@ -29,6 +29,19 @@ This app requires the following OAuth scopes, approved by a Dynatrace environmen
 
 See [docs/USAGE.md](docs/USAGE.md#permissions) for the minimum scope set for read-only use.
 
+## Deployment Options
+
+This app can deploy as the combined app above, or as four standalone single-feature apps (Notebook Manager, Dashboard Manager, Lookup Table Manager, Document Manager) that coexist in the same environment — each requesting only the scopes its one feature needs:
+
+```bash
+npm run deploy:notebooks
+npm run deploy:dashboards
+npm run deploy:lookup
+npm run deploy:documents
+```
+
+See [docs/USAGE.md](docs/USAGE.md#deploying-as-standalone-apps) for details.
+
 ## Quick Start
 
 ```bash
@@ -52,9 +65,9 @@ npm run deploy
 
 ## Tech Stack
 
-- React 18.3.1
-- TypeScript 5.9.3
-- React Router DOM 6.22.2
+- React 19
+- TypeScript 6
+- React Router DOM 7
 - Dynatrace Strato Design System
 - Dynatrace App Toolkit (dt-app)
 - Dynatrace SDKs (client-document, client-query, etc.)
@@ -74,10 +87,15 @@ Before each deploy, update the version in TWO places:
 
 | Command                     | Description                       |
 | --------------------------- | --------------------------------- |
-| `npm run start`             | Dev server with hot reload        |
+| `npm run start`             | Dev server with hot reload (combined app) |
 | `npm run build`             | Build for production              |
 | `npm run lint`              | Run ESLint                        |
-| `npm run deploy`            | Build and deploy to Dynatrace     |
+| `npm run test`              | Run unit tests                    |
+| `npm run deploy`            | Build and deploy the combined app to Dynatrace |
+| `npm run deploy:notebooks`  | Deploy standalone Notebook Manager app |
+| `npm run deploy:dashboards` | Deploy standalone Dashboard Manager app |
+| `npm run deploy:lookup`     | Deploy standalone Lookup Table Manager app |
+| `npm run deploy:documents`  | Deploy standalone Document Manager app |
 | `npm run info`              | Show CLI and environment info     |
 | `npm run generate:function` | Generate new serverless function  |
 | `npm run update`            | Update @dynatrace-scoped packages |

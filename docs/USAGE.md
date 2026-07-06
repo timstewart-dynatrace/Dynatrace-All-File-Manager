@@ -45,6 +45,27 @@ npm run build
 npm run deploy
 ```
 
+## Deploying as Standalone Apps
+
+This codebase can also be deployed as four separate single-feature apps that coexist in the same Dynatrace environment alongside the combined app — useful if you want to grant a team access to only Notebooks, for example, without also granting Lookup Table or Document permissions.
+
+```bash
+npm run deploy:notebooks    # Dynatrace Notebook Manager   (my.dt.notebook.manager)
+npm run deploy:dashboards   # Dynatrace Dashboard Manager  (my.dt.dashboard.manager)
+npm run deploy:lookup       # Dynatrace Lookup Table Manager (my.dt.lookup.manager)
+npm run deploy:documents    # Dynatrace Document Manager   (my.dt.document.manager)
+
+# Local preview of a single-feature build:
+npm run start:notebooks
+npm run start:dashboards
+npm run start:lookup
+npm run start:documents
+```
+
+Each standalone app requests **only** the OAuth scopes its one feature needs (e.g. the Lookup Table app never requests `document:documents:*`). The combined app (`npm run deploy`, unaffected by any of this) still requests the full scope list and shows all four tabs.
+
+These commands temporarily swap in a feature-specific `app.config.json` and feature flag, run the command, then restore the combined-app files — you don't need to manually edit any config to use them. See `.claude/architecture.md` → "Deployment Targets" for how this works internally.
+
 ## Permissions
 
 The app requests the following OAuth scopes when installed. A Dynatrace environment admin must approve these scopes. Features that require a scope that has not been granted will silently fail or show empty results.

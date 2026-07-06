@@ -9,6 +9,7 @@ import {
 } from "@dynatrace/strato-components/typography";
 import { Card } from "../components/Card";
 import { APP_VERSION } from "../constants";
+import { ENABLED_FEATURE_LIST } from "../features";
 
 export const Home = () => {
   const theme = useCurrentTheme();
@@ -28,46 +29,15 @@ export const Home = () => {
       </Paragraph>
 
       <Flex gap={48} paddingTop={64} flexFlow="wrap">
-        <Card
-          href="/notebook-manager"
-          inAppLink
-          imgSrc={
-            theme === "light"
-              ? "./assets/notebook.svg"
-              : "./assets/notebook_dark.svg"
-          }
-          name="Notebooks"
-        />
-        <Card
-          href="/dashboard-manager"
-          inAppLink
-          imgSrc={
-            theme === "light"
-              ? "./assets/dashboard.svg"
-              : "./assets/dashboard_dark.svg"
-          }
-          name="Dashboards"
-        />
-        <Card
-          href="/lookup-file-manager"
-          inAppLink
-          imgSrc={
-            theme === "light"
-              ? "./assets/lookup.svg"
-              : "./assets/lookup_dark.svg"
-          }
-          name="Lookup Tables"
-        />
-        <Card
-          href="/file-manager"
-          inAppLink
-          imgSrc={
-            theme === "light"
-              ? "./assets/document.svg"
-              : "./assets/document_dark.svg"
-          }
-          name="Documents"
-        />
+        {ENABLED_FEATURE_LIST.map((feature) => (
+          <Card
+            key={feature.id}
+            href={feature.path}
+            inAppLink
+            imgSrc={theme === "light" ? feature.cardIconLight : feature.cardIconDark}
+            name={feature.cardName}
+          />
+        ))}
       </Flex>
       <Paragraph style={{ marginTop: 48 }}>
         <a 
