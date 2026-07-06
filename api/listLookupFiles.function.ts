@@ -90,9 +90,12 @@ export default async function () {
     console.log(`Found ${files.length} lookup files`);
 
     return {
-      success: true,
-      files,
-      count: files.length,
+      statusCode: 200,
+      body: {
+        success: true,
+        files,
+        count: files.length,
+      },
     };
   } catch (error) {
     console.error("Error listing lookup files:", error);
@@ -101,10 +104,13 @@ export default async function () {
       error instanceof Error ? error.message : "Unknown error occurred";
 
     return {
-      success: false,
-      error: `${errorMessage}`,
-      files: [],
-      count: 0,
+      statusCode: 500,
+      body: {
+        success: false,
+        error: `${errorMessage}`,
+        files: [],
+        count: 0,
+      },
     };
   }
 }

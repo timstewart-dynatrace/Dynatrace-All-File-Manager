@@ -20,16 +20,16 @@ export default async function (payload: DeletePayload): Promise<unknown> {
 
     if (!filePath) {
       return {
-        success: false,
-        error: "fileId is required",
+        statusCode: 400,
+        body: { success: false, error: "fileId is required" },
       };
     }
 
     // Validate file path
     if (!filePath.startsWith("/lookups/")) {
       return {
-        success: false,
-        error: "File path must start with /lookups/",
+        statusCode: 400,
+        body: { success: false, error: "File path must start with /lookups/" },
       };
     }
 
@@ -55,15 +55,17 @@ export default async function (payload: DeletePayload): Promise<unknown> {
     }
 
     return {
-      success: true,
-      fileId,
-      filePath,
+      statusCode: 200,
+      body: { success: true, fileId, filePath },
     };
   } catch (error) {
     console.error("Error deleting lookup file:", error);
     return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error occurred",
+      statusCode: 500,
+      body: {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error occurred",
+      },
     };
   }
 }

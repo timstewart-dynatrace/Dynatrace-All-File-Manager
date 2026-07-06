@@ -22,16 +22,16 @@ export default async function (payload: GetContentPayload): Promise<unknown> {
 
     if (!filePath) {
       return {
-        success: false,
-        error: "fileId is required",
+        statusCode: 400,
+        body: { success: false, error: "fileId is required" },
       };
     }
 
     // Validate file path
     if (!filePath.startsWith("/lookups/")) {
       return {
-        success: false,
-        error: "File path must start with /lookups/",
+        statusCode: 400,
+        body: { success: false, error: "File path must start with /lookups/" },
       };
     }
 
@@ -41,16 +41,18 @@ export default async function (payload: GetContentPayload): Promise<unknown> {
     // Use double quotes for the file path (DQL string literal), not backticks
     const contentQuery = `load "${filePath}"`;
 
+    const MAX_RECORDS = 100000;
     const contentResponse = await queryExecutionClient.queryExecute({
       body: {
         query: contentQuery,
         requestTimeoutMilliseconds: 30000,
         fetchTimeoutSeconds: 60,
-        maxResultRecords: 100000,
+        maxResultRecords: MAX_RECORDS,
       },
     });
 
     const records = contentResponse?.result?.records || [];
+    const truncated = records.length >= MAX_RECORDS;
 
     // Convert records to CSV format
     let csvContent = "";
@@ -78,18 +80,29 @@ export default async function (payload: GetContentPayload): Promise<unknown> {
       }
     }
 
+    if (truncated) {
+      console.warn(`getLookupFileContent: result truncated at ${MAX_RECORDS} records for ${filePath}`);
+    }
+
     return {
-      success: true,
-      records,
-      recordCount: records.length,
-      csvContent,
-      filePath,
+      statusCode: 200,
+      body: {
+        success: true,
+        records,
+        recordCount: records.length,
+        truncated,
+        csvContent,
+        filePath,
+      },
     };
   } catch (error) {
     console.error("Error fetching file content:", error);
     return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error occurred",
+      statusCode: 500,
+      body: {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error occurred",
+      },
     };
   }
 }

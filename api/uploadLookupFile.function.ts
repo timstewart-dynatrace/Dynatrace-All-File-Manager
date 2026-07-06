@@ -25,26 +25,51 @@ export default async function (payload: UploadPayload): Promise<unknown> {
     // Validate required fields
     if (!filePath || !content || !parsePattern || !lookupField) {
       return {
-        success: false,
-        error: "Missing required fields: filePath, content, parsePattern, lookupField",
+        statusCode: 400,
+        body: {
+          success: false,
+          error: "Missing required fields: filePath, content, parsePattern, lookupField",
+        },
       };
     }
 
     // Validate file path
     if (!filePath.startsWith("/lookups/")) {
       return {
-        success: false,
-        error: "File path must start with /lookups/",
+        statusCode: 400,
+        body: { success: false, error: "File path must start with /lookups/" },
       };
     }
 
-    // Validate file path format
+    // Validate file path format — no path traversal, no consecutive dots/slashes
     const pathRegex = /^\/[a-zA-Z0-9\-_./]+[a-zA-Z0-9]$/;
-    if (!pathRegex.test(filePath)) {
+    if (!pathRegex.test(filePath) || filePath.includes("..") || filePath.includes("//")) {
       return {
-        success: false,
-        error:
-          "Invalid file path format. Must contain only alphanumeric characters, -, _, ., or /",
+        statusCode: 400,
+        body: {
+          success: false,
+          error: "Invalid file path format. Must contain only alphanumeric characters, -, _, ., or /",
+        },
+      };
+    }
+
+    // Validate content size (10 MB limit)
+    const MAX_CONTENT_BYTES = 10 * 1024 * 1024;
+    if (content.length > MAX_CONTENT_BYTES) {
+      return {
+        statusCode: 400,
+        body: {
+          success: false,
+          error: `Content exceeds maximum allowed size of 10 MB (got ${(content.length / 1024 / 1024).toFixed(2)} MB)`,
+        },
+      };
+    }
+
+    // Validate content is non-empty after trimming
+    if (!content.trim()) {
+      return {
+        statusCode: 400,
+        body: { success: false, error: "Content must not be empty" },
       };
     }
 
@@ -99,16 +124,22 @@ export default async function (payload: UploadPayload): Promise<unknown> {
     const result: unknown = await response.json();
 
     return {
-      success: true,
-      fileId: filePath,
-      filePath,
-      result: result as Record<string, unknown>,
+      statusCode: 200,
+      body: {
+        success: true,
+        fileId: filePath,
+        filePath,
+        result: result as Record<string, unknown>,
+      },
     };
   } catch (error) {
     console.error("Error uploading lookup file:", error);
     return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error occurred",
+      statusCode: 500,
+      body: {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error occurred",
+      },
     };
   }
 }

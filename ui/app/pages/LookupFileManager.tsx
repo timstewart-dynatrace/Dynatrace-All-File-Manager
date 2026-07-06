@@ -64,19 +64,23 @@ interface DeleteResult {
   message: string;
 }
 
-interface ApiResponse {
+interface LookupApiBody {
   success?: boolean;
   files?: LookupFile[];
   count?: number;
   message?: string;
   error?: string;
-}
-
-interface ContentApiResponse {
-  success?: boolean;
+  fileId?: string;
+  filePath?: string;
+  records?: unknown[];
   csvContent?: string;
   recordCount?: number;
-  error?: string;
+  truncated?: boolean;
+}
+
+interface LookupApiResponse {
+  statusCode?: number;
+  body?: LookupApiBody;
 }
 
 export const LookupFileManager = () => {
@@ -167,15 +171,16 @@ export const LookupFileManager = () => {
         headers: { "Content-Type": "application/json" },
       });
 
-      const data = (await response.json()) as ApiResponse;
+      const data = (await response.json()) as LookupApiResponse;
+      const body = data.body;
 
-      if (data.success && data.files) {
-        setFiles(data.files);
+      if (body?.success && body.files) {
+        setFiles(body.files);
       } else {
         showToast({
           type: "critical",
           title: "Failed to load lookup files",
-          message: data.error || "Unknown error",
+          message: body?.error || "Unknown error",
         });
       }
     } catch (error) {
@@ -275,13 +280,14 @@ export const LookupFileManager = () => {
             body: JSON.stringify({ fileId }),
           });
 
-          const data = (await response.json()) as { success?: boolean; fileId?: string; error?: string };
-          if (data.success) {
+          const resp = (await response.json()) as LookupApiResponse;
+          const body = resp.body;
+          if (body?.success) {
             successCount++;
             deletedNames.push(name);
             results.push({
               name,
-              id: data.fileId || fileId,
+              id: body.fileId || fileId,
               success: true,
               message: "Lookup file deleted successfully",
             });
@@ -292,7 +298,7 @@ export const LookupFileManager = () => {
               name,
               id: fileId,
               success: false,
-              message: data.error || "Failed to delete lookup file",
+              message: body?.error || "Failed to delete lookup file",
             });
           }
         } catch (error) {
@@ -351,11 +357,19 @@ export const LookupFileManager = () => {
           body: JSON.stringify({ fileId }),
         });
 
-        const data = (await response.json()) as ContentApiResponse;
+        const resp = (await response.json()) as LookupApiResponse;
+        const body = resp.body;
 
-        if (data.success && data.csvContent) {
+        if (body?.success && body.csvContent) {
+          if (body.truncated) {
+            showToast({
+              type: "warning",
+              title: "Download truncated",
+              message: `File "${fileId}" exceeded 100,000 records. Only the first 100,000 rows were exported.`,
+            });
+          }
           // Create and trigger download
-          const blob = new Blob([data.csvContent], { type: "text/csv" });
+          const blob = new Blob([body.csvContent], { type: "text/csv" });
           const url = window.URL.createObjectURL(blob);
           const link = document.createElement("a");
           link.href = url;
@@ -370,7 +384,7 @@ export const LookupFileManager = () => {
           showToast({
             type: "critical",
             title: "Download failed",
-            message: data.error || `Failed to download ${fileId}`,
+            message: body?.error || `Failed to download ${fileId}`,
           });
         }
       } catch (error) {
@@ -514,14 +528,11 @@ export const LookupFileManager = () => {
             body: JSON.stringify(requestBody),
           });
 
-          let data = (await response.json()) as {
-            success?: boolean;
-            fileId?: string;
-            error?: string;
-          };
+          let uploadResp = (await response.json()) as LookupApiResponse;
+          let uploadBody = uploadResp.body;
 
           // Check if file already exists (409 conflict)
-          if (!data.success && data.error?.includes("already exists")) {
+          if (!uploadBody?.success && uploadBody?.error?.includes("already exists")) {
             // Find existing file to get its current metadata
             const existingFile = files.find((f) => f.id === filePath);
             const existingName = existingFile?.displayName || "";
@@ -551,25 +562,22 @@ export const LookupFileManager = () => {
                 body: JSON.stringify(overwriteBody),
               });
 
-              data = (await response.json()) as {
-                success?: boolean;
-                fileId?: string;
-                error?: string;
-              };
+              uploadResp = (await response.json()) as LookupApiResponse;
+              uploadBody = uploadResp.body;
             }
           }
 
-          if (data.success) {
+          if (uploadBody?.success) {
             results.push({
               fileName: file.name,
               success: true,
-              fileId: data.fileId,
+              fileId: uploadBody.fileId,
             });
           } else {
             results.push({
               fileName: file.name,
               success: false,
-              error: data.error || "Upload failed",
+              error: uploadBody?.error || "Upload failed",
             });
           }
         } catch (error) {
@@ -679,19 +687,16 @@ export const LookupFileManager = () => {
         body: JSON.stringify({ fileId: file.id }),
       });
 
-      const data = (await response.json()) as {
-        success?: boolean;
-        records?: FileRecord[];
-        error?: string;
-      };
+      const resp = (await response.json()) as LookupApiResponse;
+      const body = resp.body;
 
-      if (data.success && data.records) {
-        setFileContent(data.records);
+      if (body?.success && body.records) {
+        setFileContent(body.records as FileRecord[]);
       } else {
         showToast({
           type: "critical",
           title: "Failed to load file content",
-          message: data.error || "Unknown error",
+          message: body?.error || "Unknown error",
         });
         setFileContent([]);
       }
@@ -1067,13 +1072,14 @@ export const LookupFileManager = () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ fileId: editingFile.id }),
         });
-        const reloadData = (await reloadResponse.json()) as { records?: Record<string, unknown>[] };
-        console.log("[Save Debug] Reloaded records count:", reloadData.records?.length);
-        console.log("[Save Debug] Reloaded records:", reloadData.records);
+        const reloadResp = (await reloadResponse.json()) as LookupApiResponse;
+        const reloadRecords = reloadResp.body?.records as Record<string, unknown>[] | undefined;
+        console.log("[Save Debug] Reloaded records count:", reloadRecords?.length);
+        console.log("[Save Debug] Reloaded records:", reloadRecords);
         // Log lookup field values to debug
-        if (reloadData.records?.length) {
+        if (reloadRecords?.length) {
           console.log("[Save Debug] Lookup field values in returned records:",
-            reloadData.records.map((r: Record<string, unknown>) => r[lookupField]));
+            reloadRecords.map((r) => r[lookupField]));
         }
 
         // Now open the modal with this data

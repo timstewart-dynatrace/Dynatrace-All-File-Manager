@@ -12,7 +12,10 @@
     "update": "dt-app update",
     "info": "dt-app info",
     "help": "dt-app help",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "tsx --test ui/app/utils/__tests__/csv.test.ts ui/app/utils/__tests__/document.test.ts",
+    "check:version": "node scripts/check-version-sync.mjs",
+    "predeploy": "node scripts/check-version-sync.mjs"
   },
   "engines": {
     "node": ">=20.0.0"
@@ -56,6 +59,7 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-security": "^3.0.1",
+    "tsx": "^3.14.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.60.0"
   }

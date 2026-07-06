@@ -109,7 +109,7 @@ export default async function (payload: FilePayload) {
         const e = updateErr as ApiError;
         console.error(`Failed to set ${result.id} public after create:`, e);
         return {
-          statusCode: 200,
+          statusCode: 207,
           body: {
             id: result.id,
             message: "File created but visibility update to public failed",

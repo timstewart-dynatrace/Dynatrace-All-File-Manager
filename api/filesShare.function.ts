@@ -11,8 +11,11 @@ interface SharePayload {
 }
 
 export default async function (payload: SharePayload) {
+  console.log("[filesShare] Starting share creation with payload:", JSON.stringify(payload));
+
   try {
     if (!payload.documentId) {
+      console.log("[filesShare] ERROR: No documentId provided");
       return {
         statusCode: 400,
         body: {
@@ -21,12 +24,16 @@ export default async function (payload: SharePayload) {
       };
     }
 
+    console.log("[filesShare] Creating environment share for document:", payload.documentId);
+
     const share = await environmentSharesClient.createEnvironmentShare({
       body: {
         documentId: payload.documentId,
         access: "read",
       },
     });
+
+    console.log("[filesShare] Share created successfully:", JSON.stringify(share));
 
     return {
       statusCode: 200,
@@ -40,7 +47,8 @@ export default async function (payload: SharePayload) {
     };
   } catch (err: unknown) {
     const error = err as ApiError;
-    console.error("Error creating share:", error);
+    console.error("[filesShare] ERROR creating share:", error);
+    console.error("[filesShare] Error details - statusCode:", error.statusCode, "message:", error.message);
 
     if (error.message?.includes("already exists")) {
       return {

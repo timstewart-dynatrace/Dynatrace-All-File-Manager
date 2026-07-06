@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { looksLikeLaunchpad, nameFromFile } from "../utils/document";
 import { getCurrentUserDetails, getEnvironmentUrl } from "@dynatrace-sdk/app-environment";
 import { Page } from "@dynatrace/strato-components-preview/layouts";
 import {
@@ -17,23 +16,36 @@ import {
   DownloadIcon,
   LockIcon,
   UnlockIcon,
-  XmarkIcon,
+  LinkIcon,
+  CopyIcon,
 } from "@dynatrace/strato-icons";
 import Colors from "@dynatrace/strato-design-tokens/colors";
 
+export interface DocumentManagerConfig {
+  entityName: string;        // "Notebook" | "Dashboard"
+  entityNamePlural: string;  // "Notebooks" | "Dashboards"
+  apiList: string;           // "/api/notebooksList"
+  apiCreate: string;         // "/api/notebooks"
+  apiDelete: string;         // "/api/notebooksDelete"
+  apiGet: string;            // "/api/notebooksGet"
+  apiUpdate: string;         // "/api/notebooksUpdate"
+  apiShare: string;          // "/api/notebooksShare"
+  apiShareList: string;      // "/api/notebooksShareList"
+  responseKey: string;       // "notebooks" | "dashboards"
+  dtLinkPath: string;        // "/ui/apps/dynatrace.notebooks/notebook/"
+}
+
 type SortField =
   | "displayName"
-  | "type"
   | "owner"
   | "createdTime"
   | "modifiedTime"
   | "isPublic";
 type SortDirection = "asc" | "desc";
 
-interface FileDoc {
+interface Document {
   id: string;
   displayName: string;
-  type?: string;
   owner?: string;
   createdTime?: string;
   modifiedTime?: string;
@@ -44,10 +56,17 @@ interface FileDoc {
   shareUrl?: string;
 }
 
+interface EnvironmentShare {
+  id: string;
+  documentId: string;
+  access: string[];
+  claimCount: number;
+}
+
 interface UploadResult {
   fileName: string;
   success: boolean;
-  fileId?: string;
+  entityId?: string;
   error?: string;
 }
 
@@ -67,30 +86,42 @@ interface UpdateResult {
 
 interface ApiResponse {
   body?: {
-    files?: FileDoc[];
+    [key: string]: unknown;
     debug?: unknown;
     message?: string;
     id?: string;
   };
-  files?: FileDoc[];
+  [key: string]: unknown;
   id?: string;
   message?: string;
 }
 
-// Required metadata fields for bulk upload validation
-const REQUIRED_METADATA_FIELDS = ["name", "type"];
+interface DocumentManagerProps {
+  config: DocumentManagerConfig;
+}
 
-// Checks if a parsed JSON object conforms to the document standard
-const isConformingDocument = (data: Record<string, unknown>): boolean => {
-  return REQUIRED_METADATA_FIELDS.every(
-    (field) => field in data && typeof data[field] === "string" && String(data[field]).trim() !== ""
+export const DocumentManager = ({ config }: DocumentManagerProps) => {
+  const {
+    entityName,
+    entityNamePlural,
+    apiList,
+    apiCreate,
+    apiDelete,
+    apiGet,
+    apiUpdate,
+    apiShare,
+    apiShareList,
+    responseKey,
+    dtLinkPath,
+  } = config;
+
+  const entityNameLower = entityName.toLowerCase();
+  const entityNamePluralLower = entityNamePlural.toLowerCase();
+
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(
+    new Set()
   );
-};
-
-
-export const FileManager = () => {
-  const [files, setFiles] = useState<FileDoc[]>([]);
-  const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -104,41 +135,31 @@ export const FileManager = () => {
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [showOnlyMine, setShowOnlyMine] = useState(false);
+  const [showShareUrls, setShowShareUrls] = useState(false);
+  const [shares, setShares] = useState<Map<string, EnvironmentShare>>(new Map());
+  const [generatingShare, setGeneratingShare] = useState(false);
+  const [alternateView, setAlternateView] = useState(false);
 
-  // Single upload state
-  const [singleFile, setSingleFile] = useState<File | null>(null);
-  const [singleFileConforms, setSingleFileConforms] = useState(false);
-  const [singleFileContent, setSingleFileContent] = useState<string>("");
-  const [singleName, setSingleName] = useState("");
-  const [singleType, setSingleType] = useState("");
-  const [singleIsPrivate, setSingleIsPrivate] = useState(true);
-  const [singleExternalId, setSingleExternalId] = useState("");
-  const [singleUploading, setSingleUploading] = useState(false);
-  const [singleUploadResult, setSingleUploadResult] = useState<UploadResult | null>(null);
+  // Filter and sort documents
+  const filteredAndSortedDocuments = useMemo(() => {
+    let result = [...documents];
 
-  // Viewer modal state
-  const [viewerOpen, setViewerOpen] = useState(false);
-  const [viewerLoading, setViewerLoading] = useState(false);
-  const [viewerFile, setViewerFile] = useState<FileDoc | null>(null);
-  const [viewerContent, setViewerContent] = useState<string>("");
-
-  const filteredAndSortedFiles = useMemo(() => {
-    let result = [...files];
-
+    // Apply "show only mine" filter
     if (showOnlyMine && currentUserId) {
-      result = result.filter((f) => f.owner === currentUserId);
+      result = result.filter((n) => n.owner === currentUserId);
     }
 
+    // Apply text filter
     if (filterText.trim()) {
       const lowerFilter = filterText.toLowerCase();
       result = result.filter(
-        (f) =>
-          (f.displayName || "").toLowerCase().includes(lowerFilter) ||
-          (f.owner || "").toLowerCase().includes(lowerFilter) ||
-          (f.type || "").toLowerCase().includes(lowerFilter)
+        (n) =>
+          (n.displayName || "").toLowerCase().includes(lowerFilter) ||
+          (n.owner || "").toLowerCase().includes(lowerFilter)
       );
     }
 
+    // Apply sort
     result.sort((a, b) => {
       let aVal: string | number = "";
       let bVal: string | number = "";
@@ -147,10 +168,6 @@ export const FileManager = () => {
         case "displayName":
           aVal = (a.displayName || "").toLowerCase();
           bVal = (b.displayName || "").toLowerCase();
-          break;
-        case "type":
-          aVal = (a.type || "").toLowerCase();
-          bVal = (b.type || "").toLowerCase();
           break;
         case "owner":
           aVal = (a.owner || "").toLowerCase();
@@ -176,7 +193,7 @@ export const FileManager = () => {
     });
 
     return result;
-  }, [files, filterText, sortField, sortDirection, showOnlyMine, currentUserId]);
+  }, [documents, filterText, sortField, sortDirection, showOnlyMine, currentUserId]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -192,92 +209,146 @@ export const FileManager = () => {
     return sortDirection === "asc" ? " ▲" : " ▼";
   };
 
-  const loadFiles = useCallback(async () => {
+  const loadDocuments = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/filesList", {
+      console.log(`Calling ${apiList}...`);
+      const response = await fetch(apiList, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({}),
       });
+      console.log("Response status:", response.status, response.statusText);
       if (!response.ok) {
-        throw new Error(`Failed to load files: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error("Error response:", errorText);
+        throw new Error(`Failed to load ${entityNamePluralLower}: ${response.statusText}`);
       }
       const data = (await response.json()) as ApiResponse;
-      const fileList: FileDoc[] = data.body?.files || data.files || [];
-      setFiles(fileList);
+      console.log("Response data:", data);
+
+      // API returns { statusCode: 200, body: { [responseKey]: [...], total: N, debug: {...} } }
+      const bodyData = data.body;
+      const documentList: Document[] =
+        (bodyData?.[responseKey] as Document[] | undefined) ||
+        (data[responseKey] as Document[] | undefined) ||
+        [];
+      console.log(`${entityNamePlural} array:`, documentList);
+      console.log("API Debug info:", data.body?.debug);
+      setDocuments(documentList);
     } catch (error) {
       showToast({
-        title: "Error loading files",
+        title: `Error loading ${entityNamePluralLower}`,
         message: error instanceof Error ? error.message : "Unknown error",
         type: "critical",
       });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [apiList, entityNamePlural, entityNamePluralLower, responseKey]);
+
+  const loadShares = useCallback(async () => {
+    console.log(`[${entityName}Manager] loadShares() called`);
+    try {
+      const response = await fetch(apiShareList, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      console.log(`[${entityName}Manager] loadShares response status:`, response.status);
+      if (response.ok) {
+        const data = await response.json() as { body?: { shares?: EnvironmentShare[] } };
+        console.log(`[${entityName}Manager] loadShares raw data:`, JSON.stringify(data));
+        const sharesList = data.body?.shares || [];
+        console.log(`[${entityName}Manager] loadShares found`, sharesList.length, "shares");
+        const sharesMap = new Map<string, EnvironmentShare>();
+        sharesList.forEach((share: EnvironmentShare) => {
+          console.log(`[${entityName}Manager] Mapping share:`, share.id, "-> documentId:", share.documentId);
+          sharesMap.set(share.documentId, share);
+        });
+        setShares(sharesMap);
+        console.log(`[${entityName}Manager] shares state updated with`, sharesMap.size, "entries");
+      } else {
+        const errorText = await response.text();
+        console.error(`[${entityName}Manager] loadShares failed:`, response.status, errorText);
+      }
+    } catch (err) {
+      console.error(`[${entityName}Manager] Failed to load shares:`, err);
+    }
+  }, [apiShareList, entityName]);
 
   useEffect(() => {
-    void loadFiles();
+    void loadDocuments();
+    void loadShares();
+    // Load current user info
     try {
       const userDetails = getCurrentUserDetails();
+      console.log("Current user:", userDetails);
       setCurrentUserId(userDetails.id);
     } catch (err) {
       console.error("Failed to get current user details:", err);
     }
-  }, [loadFiles]);
+  }, [loadDocuments, loadShares]);
 
+  // Check if any selected document is not owned by current user
   const hasNonOwnedSelected = useMemo(() => {
     if (!currentUserId) return false;
-    return Array.from(selectedFiles).some((id) => {
-      const file = files.find((f) => f.id === id);
-      return file && file.owner !== currentUserId;
+    return Array.from(selectedDocuments).some((id) => {
+      const document = documents.find((n) => n.id === id);
+      return document && document.owner !== currentUserId;
     });
-  }, [selectedFiles, files, currentUserId]);
+  }, [selectedDocuments, documents, currentUserId]);
 
   const handleSelectAll = () => {
-    const allIds = filteredAndSortedFiles.map((f) => f.id);
-    const allSelected = allIds.every((id) => selectedFiles.has(id));
+    const allIds = filteredAndSortedDocuments.map((n) => n.id);
+    const allSelected = allIds.every((id) => selectedDocuments.has(id));
 
     if (allSelected && allIds.length > 0) {
-      const newSelected = new Set(selectedFiles);
+      // Deselect all
+      const newSelected = new Set(selectedDocuments);
       allIds.forEach((id) => newSelected.delete(id));
-      setSelectedFiles(newSelected);
+      setSelectedDocuments(newSelected);
     } else {
-      const newSelected = new Set(selectedFiles);
+      // Select all
+      const newSelected = new Set(selectedDocuments);
       allIds.forEach((id) => newSelected.add(id));
-      setSelectedFiles(newSelected);
+      setSelectedDocuments(newSelected);
     }
   };
 
-  const handleSelectFile = (id: string) => {
-    const newSelected = new Set(selectedFiles);
+  const handleSelectDocument = (id: string) => {
+    const newSelected = new Set(selectedDocuments);
     if (newSelected.has(id)) {
       newSelected.delete(id);
     } else {
       newSelected.add(id);
     }
-    setSelectedFiles(newSelected);
+    setSelectedDocuments(newSelected);
   };
 
   const handleBulkDelete = async () => {
-    if (selectedFiles.size === 0) {
+    if (selectedDocuments.size === 0) {
       showToast({
-        title: "No files selected",
-        message: "Please select at least one file to delete",
+        title: `No ${entityNamePluralLower} selected`,
+        message: `Please select at least one ${entityNameLower} to delete`,
         type: "warning",
       });
       return;
     }
 
-    const filesToDelete = files.filter((f) => selectedFiles.has(f.id));
-    const namesList = filesToDelete
-      .map((f) => `  • ${f.displayName || "Unnamed"}`)
+    // Get the names of documents to be deleted for confirmation
+    const documentsToDelete = documents.filter((n) =>
+      selectedDocuments.has(n.id)
+    );
+    const namesList = documentsToDelete
+      .map((n) => `  • ${n.displayName || "Unnamed"}`)
       .join("\n");
 
     if (
       !confirm(
-        `Are you sure you want to delete ${selectedFiles.size} file(s)? This action cannot be undone.\n\nFiles to delete:\n${namesList}`
+        `Are you sure you want to delete ${selectedDocuments.size} ${entityNameLower}(s)? This action cannot be undone.\n\n${entityNamePlural} to delete:\n${namesList}`
       )
     ) {
       return;
@@ -285,27 +356,36 @@ export const FileManager = () => {
 
     setDeleting(true);
     setDeleteResults([]);
-    const fileIds = Array.from(selectedFiles);
+    const documentIds = Array.from(selectedDocuments);
     let successCount = 0;
     let failCount = 0;
+
     const deletedNames: string[] = [];
     const failedNames: string[] = [];
     const results: DeleteResult[] = [];
 
-    for (const id of fileIds) {
-      const file = files.find((f) => f.id === id);
-      const name = file?.displayName || id;
+    for (const id of documentIds) {
+      const document = documents.find((n) => n.id === id);
+      const name = document?.displayName || id;
 
       try {
-        const response = await fetch("/api/filesDelete", {
+        console.log(`Deleting ${entityNameLower}: ${name} (${id})`);
+        const response = await fetch(apiDelete, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({ id }),
         });
 
         const responseData = (await response
           .json()
           .catch(() => ({}))) as ApiResponse;
+        console.log(
+          `Delete response for ${name}:`,
+          response.status,
+          responseData
+        );
 
         if (
           response.ok &&
@@ -315,21 +395,23 @@ export const FileManager = () => {
           deletedNames.push(name);
           results.push({
             name,
-            id: responseData.body?.id || id,
+            id: (responseData.body?.id as string | undefined) || id,
             success: true,
-            message: responseData.body?.message || "File deleted successfully",
+            message: (responseData.body?.message as string | undefined) || `${entityName} deleted successfully`,
           });
         } else {
+          console.error(`Failed to delete ${name}:`, responseData);
           failCount++;
           failedNames.push(name);
           results.push({
             name,
             id,
             success: false,
-            message: responseData.body?.message || "Failed to delete file",
+            message: (responseData.body?.message as string | undefined) || `Failed to delete ${entityNameLower}`,
           });
         }
       } catch (error) {
+        console.error(`Error deleting ${name}:`, error);
         failCount++;
         failedNames.push(name);
         results.push({
@@ -342,7 +424,7 @@ export const FileManager = () => {
     }
 
     setDeleting(false);
-    setSelectedFiles(new Set());
+    setSelectedDocuments(new Set());
     setDeleteResults(results);
 
     if (failCount === 0 && successCount > 0) {
@@ -360,59 +442,37 @@ export const FileManager = () => {
     } else {
       showToast({
         title: "Deletion completed with errors",
-        message: `Deleted: ${deletedNames.join(", ")}. Failed: ${failedNames.join(", ")}`,
+        message: `Deleted: ${deletedNames.join(
+          ", "
+        )}. Failed: ${failedNames.join(", ")}`,
         type: "warning",
       });
     }
 
-    await loadFiles();
+    // Force refresh the list
+    console.log(`Refreshing ${entityNameLower} list after delete...`);
+    await loadDocuments();
   };
 
-  // --- Bulk Upload (requires conforming format) ---
-
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFilesList = event.target.files;
-    if (selectedFilesList) {
-      setUploadFiles(Array.from(selectedFilesList));
+    const selectedFiles = event.target.files;
+    if (selectedFiles) {
+      setUploadFiles(Array.from(selectedFiles));
       setUploadResults([]);
     }
   };
 
-  const uploadConformingFile = async (file: File): Promise<UploadResult> => {
+  const uploadDocument = async (file: File): Promise<UploadResult> => {
     try {
       const content = await file.text();
-      let fileData: Record<string, unknown>;
-      try {
-        fileData = JSON.parse(content) as Record<string, unknown>;
-      } catch {
-        return {
-          fileName: file.name,
-          success: false,
-          error: "Invalid JSON",
-        };
-      }
+      const documentData = JSON.parse(content) as Record<string, unknown>;
 
-      if (!isConformingDocument(fileData)) {
-        if (looksLikeLaunchpad(fileData)) {
-          // Launchpad content without wrapper — synthesize required metadata
-          fileData = {
-            ...fileData,
-            name: (typeof fileData.name === "string" && fileData.name) || nameFromFile(file.name),
-            type: "launchpad",
-          };
-        } else {
-          return {
-            fileName: file.name,
-            success: false,
-            error: "Missing required fields: name, type. Use Single Upload for non-conforming files.",
-          };
-        }
-      }
-
-      const response = await fetch("/api/files", {
+      const response = await fetch(apiCreate, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...fileData, _fileName: file.name }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ...documentData, _fileName: file.name }),
       });
 
       if (!response.ok) {
@@ -428,7 +488,7 @@ export const FileManager = () => {
       return {
         fileName: file.name,
         success: true,
-        fileId: responseData.id,
+        entityId: responseData.id,
       };
     } catch (error) {
       return {
@@ -443,7 +503,7 @@ export const FileManager = () => {
     if (uploadFiles.length === 0) {
       showToast({
         title: "No files selected",
-        message: "Please select at least one JSON file to upload",
+        message: `Please select at least one ${entityNameLower} JSON file to upload`,
         type: "critical",
       });
       return;
@@ -455,7 +515,7 @@ export const FileManager = () => {
     const results: UploadResult[] = [];
 
     for (const file of uploadFiles) {
-      const result = await uploadConformingFile(file);
+      const result = await uploadDocument(file);
       results.push(result);
       setUploadResults([...results]);
     }
@@ -468,7 +528,7 @@ export const FileManager = () => {
     if (failCount === 0) {
       showToast({
         title: "Upload complete",
-        message: `Successfully uploaded ${successCount} file(s)`,
+        message: `Successfully uploaded ${successCount} ${entityNameLower}(s)`,
         type: "success",
       });
     } else {
@@ -479,257 +539,80 @@ export const FileManager = () => {
       });
     }
 
-    await loadFiles();
-  };
-
-  // --- Single Upload (prompts for metadata if non-conforming) ---
-
-  const handleSingleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] || null;
-    setSingleFile(file);
-    setSingleUploadResult(null);
-    setSingleName("");
-    setSingleType("");
-    setSingleIsPrivate(true);
-    setSingleExternalId("");
-    setSingleFileConforms(false);
-    setSingleFileContent("");
-
-    if (!file) return;
-
-    try {
-      const text = await file.text();
-      setSingleFileContent(text);
-
-      let parsed: Record<string, unknown>;
-      try {
-        parsed = JSON.parse(text) as Record<string, unknown>;
-      } catch {
-        // Not valid JSON — treat as raw content, user must fill in metadata
-        setSingleFileConforms(false);
-        setSingleName(file.name.replace(/\.[^.]+$/, ""));
-        return;
-      }
-
-      if (isConformingDocument(parsed)) {
-        setSingleFileConforms(true);
-        setSingleName((parsed.name as string) || "");
-        setSingleType((parsed.type as string) || "");
-        setSingleIsPrivate(parsed.isPrivate !== false);
-        setSingleExternalId((parsed.externalId as string) || "");
-      } else if (looksLikeLaunchpad(parsed)) {
-        // Launchpad content without wrapper — auto-recognize and treat as conforming
-        setSingleFileConforms(true);
-        setSingleName((parsed.name as string) || nameFromFile(file.name));
-        setSingleType("launchpad");
-        setSingleIsPrivate(parsed.isPrivate !== false);
-        setSingleExternalId((parsed.externalId as string) || "");
-      } else {
-        setSingleFileConforms(false);
-        // Pre-fill name from file if available in JSON
-        setSingleName((parsed.name as string) || nameFromFile(file.name));
-        setSingleType((parsed.type as string) || "");
-      }
-    } catch {
-      setSingleFileConforms(false);
-      setSingleName(file.name.replace(/\.[^.]+$/, ""));
-    }
-  };
-
-  const handleSingleUpload = async () => {
-    if (!singleFile) return;
-
-    if (!singleName.trim() || !singleType.trim()) {
-      showToast({
-        title: "Missing required fields",
-        message: "Name and Type are required",
-        type: "critical",
-      });
-      return;
-    }
-
-    setSingleUploading(true);
-    setSingleUploadResult(null);
-
-    try {
-      let payload: Record<string, unknown>;
-
-      if (singleFileConforms) {
-        // File conforms — parse and send as-is (metadata will be extracted by API)
-        const parsed = JSON.parse(singleFileContent) as Record<string, unknown>;
-        payload = {
-          ...parsed,
-          // Allow overrides from form fields
-          name: singleName,
-          type: singleType,
-          isPrivate: singleIsPrivate,
-          ...(singleExternalId.trim() ? { externalId: singleExternalId } : {}),
-          _fileName: singleFile.name,
-        };
-      } else {
-        // File doesn't conform — wrap content in rawText
-        payload = {
-          name: singleName,
-          type: singleType,
-          isPrivate: singleIsPrivate,
-          ...(singleExternalId.trim() ? { externalId: singleExternalId } : {}),
-          rawText: singleFileContent,
-          _fileName: singleFile.name,
-        };
-      }
-
-      const response = await fetch("/api/files", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const errorData = (await response
-          .json()
-          .catch(() => ({ message: response.statusText }))) as {
-          message?: string;
-        };
-        throw new Error(errorData.message || `HTTP ${response.status}`);
-      }
-
-      const responseData = (await response.json()) as ApiResponse;
-      setSingleUploadResult({
-        fileName: singleFile.name,
-        success: true,
-        fileId: responseData.id,
-      });
-
-      showToast({
-        title: "Upload complete",
-        message: `Successfully uploaded ${singleName}`,
-        type: "success",
-      });
-
-      await loadFiles();
-    } catch (error) {
-      setSingleUploadResult({
-        fileName: singleFile.name,
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-    } finally {
-      setSingleUploading(false);
-    }
-  };
-
-  const onSingleUploadClick = () => {
-    void handleSingleUpload();
-  };
-
-  // --- Viewer Modal ---
-
-  const openViewer = async (file: FileDoc) => {
-    setViewerFile(file);
-    setViewerOpen(true);
-    setViewerLoading(true);
-    setViewerContent("");
-
-    try {
-      const response = await fetch("/api/filesGet", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: file.id }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch file: ${response.statusText}`);
-      }
-
-      const responseData = await response.json() as { statusCode?: number; body?: Record<string, unknown> };
-      const body = (responseData.body || responseData) as Record<string, unknown>;
-      const rawText = body.rawText;
-      if (rawText && typeof rawText === "string") {
-        setViewerContent(rawText);
-      } else {
-        setViewerContent("No rawText content found for this document.");
-      }
-    } catch (error) {
-      setViewerContent(
-        `Error loading file content: ${error instanceof Error ? error.message : "Unknown error"}`
-      );
-    } finally {
-      setViewerLoading(false);
-    }
-  };
-
-  const closeViewer = () => {
-    setViewerOpen(false);
-    setViewerFile(null);
-    setViewerContent("");
+    await loadDocuments();
   };
 
   const handleExportSelected = async () => {
-    if (selectedFiles.size === 0) {
+    if (selectedDocuments.size === 0) {
       showToast({
-        title: "No files selected",
-        message: "Please select at least one file to export",
+        title: `No ${entityNamePluralLower} selected`,
+        message: `Please select at least one ${entityNameLower} to export`,
         type: "warning",
       });
       return;
     }
 
-    for (const id of selectedFiles) {
+    for (const id of selectedDocuments) {
       try {
-        const response = await fetch("/api/filesGet", {
+        const response = await fetch(apiGet, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({ id }),
         });
         if (response.ok) {
           const responseData = await response.json() as { statusCode?: number; body?: unknown };
-          const fileContent = responseData.body || responseData;
-          const file = files.find((f) => f.id === id);
-          const fileName = `${file?.displayName || id}.json`;
+          // Extract the actual content from the API response wrapper
+          const documentContent = responseData.body || responseData;
+          const document = documents.find((n) => n.id === id);
+          const fileName = `${document?.displayName || id}.json`;
 
-          const blob = new Blob([JSON.stringify(fileContent, null, 2)], {
+          const blob = new Blob([JSON.stringify(documentContent, null, 2)], {
             type: "application/json",
           });
           const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
+          const a = window.document.createElement("a");
           a.href = url;
           a.download = fileName;
-          document.body.appendChild(a);
+          window.document.body.appendChild(a);
           a.click();
-          document.body.removeChild(a);
+          window.document.body.removeChild(a);
           URL.revokeObjectURL(url);
         }
       } catch (error) {
-        console.error(`Failed to export file ${id}:`, error);
+        console.error(`Failed to export ${entityNameLower} ${id}:`, error);
       }
     }
 
     showToast({
       title: "Export complete",
-      message: `Exported ${selectedFiles.size} file(s)`,
+      message: `Exported ${selectedDocuments.size} ${entityNameLower}(s)`,
       type: "success",
     });
   };
 
   const handleBulkToggleVisibility = async (makePrivate: boolean) => {
-    if (selectedFiles.size === 0) {
+    if (selectedDocuments.size === 0) {
       showToast({
-        title: "No files selected",
-        message: "Please select at least one file to update",
+        title: `No ${entityNamePluralLower} selected`,
+        message: `Please select at least one ${entityNameLower} to update`,
         type: "warning",
       });
       return;
     }
 
     const action = makePrivate ? "private" : "public";
-    const filesToUpdate = files.filter((f) => selectedFiles.has(f.id));
-    const namesList = filesToUpdate
-      .map((f) => `  • ${f.displayName || "Unnamed"}`)
+    const documentsToUpdate = documents.filter((n) =>
+      selectedDocuments.has(n.id)
+    );
+    const namesList = documentsToUpdate
+      .map((n) => `  • ${n.displayName || "Unnamed"}`)
       .join("\n");
 
     if (
       !confirm(
-        `Are you sure you want to make ${selectedFiles.size} file(s) ${action}?\n\nFiles to update:\n${namesList}`
+        `Are you sure you want to make ${selectedDocuments.size} ${entityNameLower}(s) ${action}?\n\n${entityNamePlural} to update:\n${namesList}`
       )
     ) {
       return;
@@ -737,27 +620,36 @@ export const FileManager = () => {
 
     setToggling(true);
     setUpdateResults([]);
-    const fileIds = Array.from(selectedFiles);
+    const documentIds = Array.from(selectedDocuments);
     let successCount = 0;
     let failCount = 0;
+
     const successNames: string[] = [];
     const failedNames: string[] = [];
     const results: UpdateResult[] = [];
 
-    for (const id of fileIds) {
-      const file = files.find((f) => f.id === id);
-      const name = file?.displayName || id;
+    for (const id of documentIds) {
+      const document = documents.find((n) => n.id === id);
+      const name = document?.displayName || id;
 
       try {
-        const response = await fetch("/api/filesUpdate", {
+        console.log(`Updating ${entityNameLower}: ${name} (${id}) to ${action}`);
+        const response = await fetch(apiUpdate, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({ id, isPrivate: makePrivate }),
         });
 
         const responseData = (await response
           .json()
           .catch(() => ({}))) as ApiResponse;
+        console.log(
+          `Update response for ${name}:`,
+          response.status,
+          responseData
+        );
 
         if (
           response.ok &&
@@ -767,21 +659,23 @@ export const FileManager = () => {
           successNames.push(name);
           results.push({
             name,
-            id: responseData.body?.id || id,
+            id: (responseData.body?.id as string | undefined) || id,
             success: true,
-            message: responseData.body?.message || "File updated successfully",
+            message: (responseData.body?.message as string | undefined) || `${entityName} updated successfully`,
           });
         } else {
+          console.error(`Failed to update ${name}:`, responseData);
           failCount++;
           failedNames.push(name);
           results.push({
             name,
             id,
             success: false,
-            message: responseData.body?.message || "Failed to update file",
+            message: (responseData.body?.message as string | undefined) || `Failed to update ${entityNameLower}`,
           });
         }
       } catch (error) {
+        console.error(`Error updating ${name}:`, error);
         failCount++;
         failedNames.push(name);
         results.push({
@@ -794,7 +688,7 @@ export const FileManager = () => {
     }
 
     setToggling(false);
-    setSelectedFiles(new Set());
+    setSelectedDocuments(new Set());
     setUpdateResults(results);
 
     if (failCount === 0 && successCount > 0) {
@@ -806,7 +700,7 @@ export const FileManager = () => {
     } else if (successCount === 0) {
       showToast({
         title: "Update failed",
-        message: `Failed to update: ${failedNames.join(", ")}. Note: Only file owners can change visibility.`,
+        message: `Failed to update: ${failedNames.join(", ")}. Note: Only ${entityNameLower} owners can change visibility.`,
         type: "critical",
       });
     } else {
@@ -817,14 +711,16 @@ export const FileManager = () => {
       });
     }
 
-    await loadFiles();
+    console.log(`Refreshing ${entityNameLower} list after visibility update...`);
+    await loadDocuments();
   };
 
+  // Wrapper functions for async handlers
   const onRefreshClick = () => {
     setDeleteResults([]);
     setUploadResults([]);
     setUpdateResults([]);
-    void loadFiles();
+    void loadDocuments();
   };
 
   const onBulkUploadClick = () => {
@@ -847,164 +743,137 @@ export const FileManager = () => {
     void handleBulkToggleVisibility(false);
   };
 
-  const inputStyle = {
-    padding: "10px 12px",
-    border: `1px solid ${Colors.Border.Neutral.Default}`,
-    borderRadius: "4px",
-    backgroundColor: "transparent",
-    color: Colors.Text.Neutral.Default,
-    fontSize: "14px",
-    width: "100%",
-    maxWidth: "400px",
+  const generateShareUrl = (shareId: string): string => {
+    return `${getEnvironmentUrl()}/ui/document/v0/#share=${shareId}`;
+  };
+
+  const handleGenerateShares = async () => {
+    console.log(`[${entityName}Manager] handleGenerateShares() called, selected:`, selectedDocuments.size);
+    if (selectedDocuments.size === 0) {
+      showToast({
+        title: `No ${entityNamePluralLower} selected`,
+        message: `Please select at least one ${entityNameLower} to generate share links`,
+        type: "warning",
+      });
+      return;
+    }
+
+    setGeneratingShare(true);
+    let successCount = 0;
+    let failCount = 0;
+    let alreadyExistsCount = 0;
+
+    for (const id of selectedDocuments) {
+      console.log(`[${entityName}Manager] Processing ${entityNameLower}:`, id);
+      // Skip if share already exists
+      if (shares.has(id)) {
+        console.log(`[${entityName}Manager] Share already exists for:`, id);
+        alreadyExistsCount++;
+        continue;
+      }
+
+      try {
+        console.log(`[${entityName}Manager] Creating share for:`, id);
+        const response = await fetch(apiShare, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ documentId: id }),
+        });
+
+        console.log(`[${entityName}Manager] Share creation response status:`, response.status);
+        const responseData = await response.json() as { body?: { message?: string; shareId?: string } };
+        console.log(`[${entityName}Manager] Share creation response data:`, JSON.stringify(responseData));
+
+        if (response.ok) {
+          console.log(`[${entityName}Manager] Share created successfully for:`, id, "shareId:", responseData.body?.shareId);
+          successCount++;
+        } else {
+          if (responseData.body?.message?.includes("already exists")) {
+            console.log(`[${entityName}Manager] Share already exists (API response) for:`, id);
+            alreadyExistsCount++;
+          } else {
+            console.error(`[${entityName}Manager] Failed to create share for:`, id, responseData);
+            failCount++;
+          }
+        }
+      } catch (err) {
+        console.error(`[${entityName}Manager] Exception creating share for ${id}:`, err);
+        failCount++;
+      }
+    }
+
+    console.log(`[${entityName}Manager] Generation complete - success:`, successCount, "failed:", failCount, "existed:", alreadyExistsCount);
+    setGeneratingShare(false);
+
+    // Refresh both documents list and shares list to update the UI
+    console.log(`[${entityName}Manager] Refreshing ${entityNamePluralLower} and shares...`);
+    await Promise.all([loadDocuments(), loadShares()]);
+    console.log(`[${entityName}Manager] Refresh complete, shares map size:`, shares.size);
+
+    if (successCount > 0 || alreadyExistsCount > 0) {
+      showToast({
+        title: "Share links generated (read-only)",
+        message: `Created: ${successCount}, Already existed: ${alreadyExistsCount}${failCount > 0 ? `, Failed: ${failCount}` : ""}`,
+        type: failCount > 0 ? "warning" : "success",
+      });
+      // Enable show share URLs toggle
+      setShowShareUrls(true);
+    } else {
+      showToast({
+        title: "Failed to generate shares",
+        message: "Could not create share links. Only document owners can create shares.",
+        type: "critical",
+      });
+    }
+  };
+
+  const onGenerateSharesClick = () => {
+    void handleGenerateShares();
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast({
+        title: "Copied",
+        message: "Share URL copied to clipboard",
+        type: "success",
+      });
+    } catch (err) {
+      console.error("Failed to copy:", err);
+      showToast({
+        title: "Copy failed",
+        message: "Could not copy to clipboard",
+        type: "critical",
+      });
+    }
   };
 
   return (
     <Page>
       <Page.Header>
         <Flex flexDirection="column" gap={8}>
-          <Heading level={1}>Document Manager</Heading>
+          <Heading level={1}>{entityName} Manager</Heading>
           <Paragraph>
-            Upload, manage, export, and delete document files. Shows all document types except notebooks and dashboards (launchpads are included).
+            Upload, manage, export, and delete {entityNamePluralLower} in bulk.
           </Paragraph>
         </Flex>
       </Page.Header>
       <Page.Main>
         <Container>
           <Flex flexDirection="column" gap={32}>
-            {/* Single Upload Section */}
-            <Flex flexDirection="column" gap={16}>
-              <Heading level={2}>Upload Single File</Heading>
-              <Paragraph>
-                Upload a single file. If the file contains standard metadata (name, type), it will be used automatically. Otherwise, fill in the fields below.
-              </Paragraph>
-
-              <input
-                type="file"
-                title="Select a file to upload"
-                onChange={(e) => void handleSingleFileChange(e)}
-                disabled={singleUploading}
-                style={{
-                  padding: "12px",
-                  border: `2px dashed ${Colors.Border.Neutral.Default}`,
-                  borderRadius: "4px",
-                  cursor: singleUploading ? "not-allowed" : "pointer",
-                }}
-              />
-
-              {singleFile && (
-                <>
-                  {singleFileConforms ? (
-                    <Paragraph style={{ color: Colors.Text.Success.Default }}>
-                      File conforms to document standard. Metadata auto-populated.
-                    </Paragraph>
-                  ) : (
-                    <Paragraph style={{ color: Colors.Text.Warning.Default }}>
-                      File does not contain required metadata. Content will be stored as rawText. Please fill in the fields below.
-                    </Paragraph>
-                  )}
-
-                  <Flex flexDirection="column" gap={12}>
-                    <Flex flexDirection="column" gap={4}>
-                      <label style={{ color: Colors.Text.Neutral.Default, fontSize: "13px", fontWeight: 500 }}>
-                        Name *
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Document name"
-                        value={singleName}
-                        onChange={(e) => setSingleName(e.target.value)}
-                        style={inputStyle}
-                      />
-                    </Flex>
-
-                    <Flex flexDirection="column" gap={4}>
-                      <label style={{ color: Colors.Text.Neutral.Default, fontSize: "13px", fontWeight: 500 }}>
-                        Type *
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. application/json, workflow-template, extension-yaml"
-                        value={singleType}
-                        onChange={(e) => setSingleType(e.target.value)}
-                        style={inputStyle}
-                      />
-                    </Flex>
-
-                    <Flex flexDirection="column" gap={4}>
-                      <label style={{ color: Colors.Text.Neutral.Default, fontSize: "13px", fontWeight: 500 }}>
-                        External ID (optional)
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="External identifier"
-                        value={singleExternalId}
-                        onChange={(e) => setSingleExternalId(e.target.value)}
-                        style={inputStyle}
-                      />
-                    </Flex>
-
-                    <label
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        cursor: "pointer",
-                        color: Colors.Text.Neutral.Default,
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={singleIsPrivate}
-                        onChange={(e) => setSingleIsPrivate(e.target.checked)}
-                        style={{ cursor: "pointer" }}
-                      />
-                      Private
-                    </label>
-                  </Flex>
-
-                  <Flex gap={16}>
-                    <Button
-                      variant="emphasized"
-                      onClick={onSingleUploadClick}
-                      disabled={singleUploading || !singleName.trim() || !singleType.trim()}
-                    >
-                      <Button.Prefix>
-                        <UploadIcon />
-                      </Button.Prefix>
-                      {singleUploading ? "Uploading..." : "Upload File"}
-                    </Button>
-                  </Flex>
-
-                  {singleUploadResult && (
-                    <Paragraph
-                      style={{
-                        fontSize: "12px",
-                        color: singleUploadResult.success
-                          ? Colors.Text.Success.Default
-                          : Colors.Text.Critical.Default,
-                      }}
-                    >
-                      {singleUploadResult.success
-                        ? `Success - ID: ${singleUploadResult.fileId}`
-                        : `Error: ${singleUploadResult.error}`}
-                    </Paragraph>
-                  )}
-                </>
-              )}
-            </Flex>
-
             {/* Bulk Upload Section */}
             <Flex flexDirection="column" gap={16}>
-              <Heading level={2}>Bulk Upload Files</Heading>
+              <Heading level={2}>Bulk Upload {entityNamePlural}</Heading>
               <Paragraph>
-                Select multiple JSON files to upload. Each file must conform to the document standard (requires name and type fields). Non-conforming files will be rejected.
+                Select multiple {entityNameLower} JSON files to upload them all at once.
               </Paragraph>
 
               <input
                 type="file"
                 accept=".json,application/json"
                 multiple
-                title="Select JSON files to upload"
+                title={`Select ${entityNameLower} JSON files to upload`}
                 onChange={handleFileChange}
                 disabled={uploading}
                 style={{
@@ -1030,7 +899,7 @@ export const FileManager = () => {
                   <Button.Prefix>
                     <UploadIcon />
                   </Button.Prefix>
-                  {uploading ? "Uploading..." : "Bulk Upload Files"}
+                  {uploading ? "Uploading..." : `Upload ${entityNamePlural}`}
                 </Button>
               </Flex>
 
@@ -1067,7 +936,7 @@ export const FileManager = () => {
                               color: Colors.Text.Success.Default,
                             }}
                           >
-                            Success - ID: {result.fileId}
+                            Success - ID: {result.entityId}
                           </Paragraph>
                         ) : (
                           <Paragraph
@@ -1086,10 +955,10 @@ export const FileManager = () => {
               )}
             </Flex>
 
-            {/* Files List Section */}
+            {/* Documents List Section */}
             <Flex flexDirection="column" gap={16}>
               <Flex justifyContent="space-between" alignItems="center">
-                <Heading level={2}>Existing Files</Heading>
+                <Heading level={2}>Existing {entityNamePlural}</Heading>
                 <Button onClick={onRefreshClick} disabled={loading}>
                   <Button.Prefix>
                     <RefreshIcon />
@@ -1102,10 +971,19 @@ export const FileManager = () => {
               <Flex gap={16} alignItems="center" flexWrap="wrap">
                 <input
                   type="text"
-                  placeholder="Filter by name, owner, or type..."
+                  placeholder="Filter by name or owner..."
                   value={filterText}
                   onChange={(e) => setFilterText(e.target.value)}
-                  style={inputStyle}
+                  style={{
+                    padding: "10px 12px",
+                    border: `1px solid ${Colors.Border.Neutral.Default}`,
+                    borderRadius: "4px",
+                    backgroundColor: "transparent",
+                    color: Colors.Text.Neutral.Default,
+                    fontSize: "14px",
+                    width: "100%",
+                    maxWidth: "400px",
+                  }}
                 />
                 <label
                   style={{
@@ -1122,7 +1000,41 @@ export const FileManager = () => {
                     onChange={(e) => setShowOnlyMine(e.target.checked)}
                     style={{ cursor: "pointer" }}
                   />
-                  Show only my files
+                  Show only my {entityNamePluralLower}
+                </label>
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    cursor: "pointer",
+                    color: Colors.Text.Neutral.Default,
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={showShareUrls}
+                    onChange={(e) => setShowShareUrls(e.target.checked)}
+                    style={{ cursor: "pointer" }}
+                  />
+                  Show share URLs
+                </label>
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    cursor: "pointer",
+                    color: Colors.Text.Neutral.Default,
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={alternateView}
+                    onChange={(e) => setAlternateView(e.target.checked)}
+                    style={{ cursor: "pointer" }}
+                  />
+                  Simple view (for copy/paste)
                 </label>
               </Flex>
 
@@ -1130,29 +1042,29 @@ export const FileManager = () => {
                 <Button
                   variant="default"
                   onClick={handleSelectAll}
-                  disabled={loading || filteredAndSortedFiles.length === 0}
+                  disabled={loading || filteredAndSortedDocuments.length === 0}
                 >
-                  {filteredAndSortedFiles.every((f) =>
-                    selectedFiles.has(f.id)
-                  ) && filteredAndSortedFiles.length > 0
+                  {filteredAndSortedDocuments.every((n) =>
+                    selectedDocuments.has(n.id)
+                  ) && filteredAndSortedDocuments.length > 0
                     ? "Deselect All"
                     : "Select All"}
                 </Button>
                 <Button
                   variant="default"
                   onClick={onExportClick}
-                  disabled={selectedFiles.size === 0}
+                  disabled={selectedDocuments.size === 0}
                 >
                   <Button.Prefix>
                     <DownloadIcon />
                   </Button.Prefix>
-                  Export Selected ({selectedFiles.size})
+                  Export Selected ({selectedDocuments.size})
                 </Button>
                 <Button
                   variant="default"
                   onClick={onMakePrivateClick}
-                  disabled={toggling || selectedFiles.size === 0 || hasNonOwnedSelected}
-                  title={hasNonOwnedSelected ? "Cannot modify files you don't own" : undefined}
+                  disabled={toggling || selectedDocuments.size === 0 || hasNonOwnedSelected}
+                  title={hasNonOwnedSelected ? `Cannot modify ${entityNamePluralLower} you don't own` : undefined}
                 >
                   <Button.Prefix>
                     <LockIcon />
@@ -1162,8 +1074,8 @@ export const FileManager = () => {
                 <Button
                   color="warning"
                   onClick={onMakePublicClick}
-                  disabled={toggling || selectedFiles.size === 0 || hasNonOwnedSelected}
-                  title={hasNonOwnedSelected ? "Cannot modify files you don't own" : undefined}
+                  disabled={toggling || selectedDocuments.size === 0 || hasNonOwnedSelected}
+                  title={hasNonOwnedSelected ? `Cannot modify ${entityNamePluralLower} you don't own` : undefined}
                 >
                   <Button.Prefix>
                     <UnlockIcon />
@@ -1171,17 +1083,28 @@ export const FileManager = () => {
                   {toggling ? "Updating..." : "Make Public"}
                 </Button>
                 <Button
+                  variant="default"
+                  onClick={onGenerateSharesClick}
+                  disabled={generatingShare || selectedDocuments.size === 0 || hasNonOwnedSelected}
+                  title={hasNonOwnedSelected ? `Cannot create shares for ${entityNamePluralLower} you don't own` : `Generate shareable URLs for selected ${entityNamePluralLower}`}
+                >
+                  <Button.Prefix>
+                    <LinkIcon />
+                  </Button.Prefix>
+                  {generatingShare ? "Generating..." : "Generate Share Links"}
+                </Button>
+                <Button
                   color="critical"
                   onClick={onDeleteClick}
-                  disabled={deleting || selectedFiles.size === 0 || hasNonOwnedSelected}
-                  title={hasNonOwnedSelected ? "Cannot delete files you don't own" : undefined}
+                  disabled={deleting || selectedDocuments.size === 0 || hasNonOwnedSelected}
+                  title={hasNonOwnedSelected ? `Cannot delete ${entityNamePluralLower} you don't own` : undefined}
                 >
                   <Button.Prefix>
                     <DeleteIcon />
                   </Button.Prefix>
                   {deleting
                     ? "Deleting..."
-                    : `Delete Selected (${selectedFiles.size})`}
+                    : `Delete Selected (${selectedDocuments.size})`}
                 </Button>
               </Flex>
 
@@ -1289,8 +1212,67 @@ export const FileManager = () => {
 
               {loading ? (
                 <Flex justifyContent="center" padding={32}>
-                  <Paragraph>Loading files...</Paragraph>
+                  <Paragraph>Loading {entityNamePluralLower}...</Paragraph>
                 </Flex>
+              ) : alternateView ? (
+                <div
+                  style={{
+                    border: `1px solid ${Colors.Border.Neutral.Default}`,
+                    borderRadius: "4px",
+                    maxHeight: "500px",
+                    overflowY: "auto",
+                    padding: "16px",
+                  }}
+                >
+                  {filteredAndSortedDocuments
+                    .filter((doc) => !showShareUrls || shares.has(doc.id))
+                    .map((doc) => (
+                      <div key={doc.id} style={{ marginBottom: "8px" }}>
+                        {showShareUrls && shares.has(doc.id) ? (
+                          <a
+                            href={generateShareUrl(shares.get(doc.id)!.id)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              color: Colors.Text.Primary.Default,
+                              textDecoration: "none",
+                            }}
+                            onMouseEnter={(e) =>
+                              (e.currentTarget.style.textDecoration = "underline")
+                            }
+                            onMouseLeave={(e) =>
+                              (e.currentTarget.style.textDecoration = "none")
+                            }
+                          >
+                            {doc.displayName || "Unnamed"}
+                          </a>
+                        ) : (
+                          <a
+                            href={`${getEnvironmentUrl()}${dtLinkPath}${doc.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              color: Colors.Text.Primary.Default,
+                              textDecoration: "none",
+                            }}
+                            onMouseEnter={(e) =>
+                              (e.currentTarget.style.textDecoration = "underline")
+                            }
+                            onMouseLeave={(e) =>
+                              (e.currentTarget.style.textDecoration = "none")
+                            }
+                          >
+                            {doc.displayName || "Unnamed"}
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  {showShareUrls && filteredAndSortedDocuments.filter((n) => shares.has(n.id)).length === 0 && (
+                    <Paragraph style={{ color: Colors.Text.Neutral.Subdued, fontStyle: "italic" }}>
+                      No {entityNamePluralLower} with share links. Generate share links first.
+                    </Paragraph>
+                  )}
+                </div>
               ) : (
                 <div
                   style={{
@@ -1320,10 +1302,10 @@ export const FileManager = () => {
                         >
                           <input
                             type="checkbox"
-                            title="Select all files"
+                            title={`Select all ${entityNamePluralLower}`}
                             checked={
-                              filteredAndSortedFiles.length > 0 &&
-                              filteredAndSortedFiles.every((f) => selectedFiles.has(f.id))
+                              filteredAndSortedDocuments.length > 0 &&
+                              filteredAndSortedDocuments.every((n) => selectedDocuments.has(n.id))
                             }
                             onChange={handleSelectAll}
                           />
@@ -1340,19 +1322,6 @@ export const FileManager = () => {
                           title="Sort by name"
                         >
                           Name{getSortIndicator("displayName")}
-                        </th>
-                        <th
-                          style={{
-                            padding: "12px",
-                            textAlign: "left",
-                            color: Colors.Text.Neutral.Default,
-                            cursor: "pointer",
-                            userSelect: "none",
-                          }}
-                          onClick={() => handleSort("type")}
-                          title="Sort by type"
-                        >
-                          Type{getSortIndicator("type")}
                         </th>
                         <th
                           style={{
@@ -1406,13 +1375,24 @@ export const FileManager = () => {
                         >
                           Visibility{getSortIndicator("isPublic")}
                         </th>
+                        {showShareUrls && (
+                          <th
+                            style={{
+                              padding: "12px",
+                              textAlign: "left",
+                              color: Colors.Text.Neutral.Default,
+                            }}
+                          >
+                            Share URL
+                          </th>
+                        )}
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredAndSortedFiles.length === 0 ? (
+                      {filteredAndSortedDocuments.length === 0 ? (
                         <tr>
                           <td
-                            colSpan={7}
+                            colSpan={showShareUrls ? 7 : 6}
                             style={{
                               padding: "24px",
                               textAlign: "center",
@@ -1420,17 +1400,19 @@ export const FileManager = () => {
                             }}
                           >
                             {filterText
-                              ? "No files match filter"
-                              : "No files found"}
+                              ? `No ${entityNamePluralLower} match filter`
+                              : `No ${entityNamePluralLower} found`}
                           </td>
                         </tr>
                       ) : (
-                        filteredAndSortedFiles.map((file) => (
+                        filteredAndSortedDocuments.map((doc) => (
                           <tr
-                            key={file.id}
+                            key={doc.id}
                             style={{
                               borderBottom: `1px solid ${Colors.Border.Neutral.Default}`,
-                              backgroundColor: selectedFiles.has(file.id)
+                              backgroundColor: selectedDocuments.has(
+                                doc.id
+                              )
                                 ? Colors.Background.Surface.Default
                                 : "transparent",
                             }}
@@ -1438,9 +1420,11 @@ export const FileManager = () => {
                             <td style={{ padding: "12px" }}>
                               <input
                                 type="checkbox"
-                                title={`Select ${file.displayName || "file"}`}
-                                checked={selectedFiles.has(file.id)}
-                                onChange={() => handleSelectFile(file.id)}
+                                title={`Select ${doc.displayName || entityNameLower}`}
+                                checked={selectedDocuments.has(doc.id)}
+                                onChange={() =>
+                                  handleSelectDocument(doc.id)
+                                }
                                 style={{ cursor: "pointer" }}
                               />
                             </td>
@@ -1450,70 +1434,27 @@ export const FileManager = () => {
                                 color: Colors.Text.Neutral.Default,
                               }}
                             >
-                              {currentUserId && file.owner === currentUserId ? (
-                                <a
-                                  href="#"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    void openViewer(file);
-                                  }}
-                                  style={{
-                                    color: Colors.Text.Primary.Default,
-                                    textDecoration: "none",
-                                    cursor: "pointer",
-                                  }}
-                                  onMouseEnter={(e) =>
-                                    (e.currentTarget.style.textDecoration = "underline")
-                                  }
-                                  onMouseLeave={(e) =>
-                                    (e.currentTarget.style.textDecoration = "none")
-                                  }
-                                >
-                                  <Strong>{file.displayName || "Unnamed"}</Strong>
-                                </a>
-                              ) : (
-                                <Strong>{file.displayName || "Unnamed"}</Strong>
-                              )}
-                              {file.type === "launchpad" && (
-                                <a
-                                  href={`${getEnvironmentUrl()}/ui/apps/dynatrace.launcher/launchpad/${file.id}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  title="Open launchpad"
-                                  style={{
-                                    marginLeft: "8px",
-                                    color: Colors.Text.Primary.Default,
-                                    textDecoration: "none",
-                                    fontSize: "12px",
-                                  }}
-                                  onMouseEnter={(e) =>
-                                    (e.currentTarget.style.textDecoration = "underline")
-                                  }
-                                  onMouseLeave={(e) =>
-                                    (e.currentTarget.style.textDecoration = "none")
-                                  }
-                                >
-                                  Open ↗
-                                </a>
-                              )}
-                            </td>
-                            <td
-                              style={{
-                                padding: "12px",
-                                fontSize: "12px",
-                              }}
-                            >
-                              <span
+                              <a
+                                href={`${getEnvironmentUrl()}${dtLinkPath}${doc.id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 style={{
-                                  padding: "4px 8px",
-                                  borderRadius: "4px",
-                                  backgroundColor: Colors.Background.Surface.Default,
-                                  color: Colors.Text.Neutral.Default,
-                                  fontWeight: 500,
+                                  color: Colors.Text.Primary.Default,
+                                  textDecoration: "none",
                                 }}
+                                onMouseEnter={(e) =>
+                                  (e.currentTarget.style.textDecoration =
+                                    "underline")
+                                }
+                                onMouseLeave={(e) =>
+                                  (e.currentTarget.style.textDecoration =
+                                    "none")
+                                }
                               >
-                                {file.type || "unknown"}
-                              </span>
+                                <Strong>
+                                  {doc.displayName || "Unnamed"}
+                                </Strong>
+                              </a>
                             </td>
                             <td
                               style={{
@@ -1521,8 +1462,8 @@ export const FileManager = () => {
                                 color: Colors.Text.Neutral.Default,
                               }}
                             >
-                              {file.owner || "N/A"}
-                              {currentUserId && file.owner === currentUserId && (
+                              {doc.owner || "N/A"}
+                              {currentUserId && doc.owner === currentUserId && (
                                 <span
                                   style={{
                                     marginLeft: "8px",
@@ -1545,8 +1486,10 @@ export const FileManager = () => {
                                 color: Colors.Text.Neutral.Default,
                               }}
                             >
-                              {file.createdTime
-                                ? new Date(file.createdTime).toLocaleDateString()
+                              {doc.createdTime
+                                ? new Date(
+                                    doc.createdTime
+                                  ).toLocaleDateString()
                                 : "N/A"}
                             </td>
                             <td
@@ -1556,8 +1499,10 @@ export const FileManager = () => {
                                 color: Colors.Text.Neutral.Default,
                               }}
                             >
-                              {file.modifiedTime
-                                ? new Date(file.modifiedTime).toLocaleDateString()
+                              {doc.modifiedTime
+                                ? new Date(
+                                    doc.modifiedTime
+                                  ).toLocaleDateString()
                                 : "N/A"}
                             </td>
                             <td
@@ -1570,18 +1515,58 @@ export const FileManager = () => {
                                 style={{
                                   padding: "4px 8px",
                                   borderRadius: "4px",
-                                  backgroundColor: file.isPublic
+                                  backgroundColor: doc.isPublic
                                     ? Colors.Background.Field.Warning.Default
                                     : Colors.Background.Field.Success.Default,
-                                  color: file.isPublic
+                                  color: doc.isPublic
                                     ? Colors.Text.Warning.Default
                                     : Colors.Text.Success.Default,
                                   fontWeight: 500,
                                 }}
                               >
-                                {file.isPublic ? "PUBLIC" : "Private"}
+                                {doc.isPublic ? "PUBLIC" : "Private"}
                               </span>
                             </td>
+                            {showShareUrls && (
+                              <td
+                                style={{
+                                  padding: "12px",
+                                  fontSize: "12px",
+                                }}
+                              >
+                                {shares.has(doc.id) ? (
+                                  <Flex gap={8} alignItems="center">
+                                    <input
+                                      type="text"
+                                      readOnly
+                                      title="Share URL - click to select"
+                                      value={generateShareUrl(shares.get(doc.id)!.id)}
+                                      style={{
+                                        padding: "4px 8px",
+                                        fontSize: "11px",
+                                        border: `1px solid ${Colors.Border.Neutral.Default}`,
+                                        borderRadius: "4px",
+                                        backgroundColor: "transparent",
+                                        color: Colors.Text.Neutral.Default,
+                                        width: "200px",
+                                      }}
+                                      onClick={(e) => (e.target as HTMLInputElement).select()}
+                                    />
+                                    <Button
+                                      variant="default"
+                                      onClick={() => void copyToClipboard(generateShareUrl(shares.get(doc.id)!.id))}
+                                      title="Copy share URL"
+                                    >
+                                      <CopyIcon />
+                                    </Button>
+                                  </Flex>
+                                ) : (
+                                  <span style={{ color: Colors.Text.Neutral.Subdued, fontStyle: "italic" }}>
+                                    No share
+                                  </span>
+                                )}
+                              </td>
+                            )}
                           </tr>
                         ))
                       )}
@@ -1596,118 +1581,19 @@ export const FileManager = () => {
                 {filterText ? (
                   <>
                     Showing:{" "}
-                    <Strong>{filteredAndSortedFiles.length}</Strong> of{" "}
-                    <Strong>{files.length}</Strong> files
+                    <Strong>{filteredAndSortedDocuments.length}</Strong> of{" "}
+                    <Strong>{documents.length}</Strong> {entityNamePluralLower}
                   </>
                 ) : (
                   <>
-                    Total files: <Strong>{files.length}</Strong>
+                    Total {entityNamePluralLower}: <Strong>{documents.length}</Strong>
                   </>
                 )}{" "}
-                | Selected: <Strong>{selectedFiles.size}</Strong>
+                | Selected: <Strong>{selectedDocuments.size}</Strong>
               </Paragraph>
             </Flex>
           </Flex>
         </Container>
-
-        {/* Viewer Modal */}
-        {viewerOpen && viewerFile && (
-          <div
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: "rgba(0, 0, 0, 0.7)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 9999,
-            }}
-            onClick={(e) => {
-              if (e.target === e.currentTarget) closeViewer();
-            }}
-          >
-            <div
-              style={{
-                backgroundColor: Colors.Background.Surface.Default,
-                borderRadius: "8px",
-                width: "90%",
-                maxWidth: "1000px",
-                maxHeight: "85vh",
-                display: "flex",
-                flexDirection: "column",
-                boxShadow: "0 4px 20px rgba(0, 0, 0, 0.3)",
-              }}
-            >
-              {/* Modal Header */}
-              <Flex
-                justifyContent="space-between"
-                alignItems="center"
-                padding={16}
-                style={{
-                  borderBottom: `1px solid ${Colors.Border.Neutral.Default}`,
-                }}
-              >
-                <Flex flexDirection="column" gap={4}>
-                  <Heading level={3}>
-                    {viewerFile.displayName || "Unnamed"}
-                  </Heading>
-                  <Paragraph
-                    style={{
-                      fontSize: "12px",
-                      color: Colors.Text.Neutral.Subdued,
-                    }}
-                  >
-                    Type: {viewerFile.type || "unknown"} | ID: {viewerFile.id}
-                  </Paragraph>
-                </Flex>
-                <Button variant="default" onClick={closeViewer}>
-                  <Button.Prefix>
-                    <XmarkIcon />
-                  </Button.Prefix>
-                  Close
-                </Button>
-              </Flex>
-
-              {/* Modal Content */}
-              <div
-                style={{
-                  flex: 1,
-                  overflow: "auto",
-                  padding: "16px",
-                }}
-              >
-                {viewerLoading ? (
-                  <Flex justifyContent="center" padding={32}>
-                    <Paragraph>Loading content...</Paragraph>
-                  </Flex>
-                ) : (
-                  <pre
-                    style={{
-                      margin: 0,
-                      padding: "16px",
-                      backgroundColor: Colors.Background.Container.Neutral.Subdued,
-                      borderRadius: "4px",
-                      border: `1px solid ${Colors.Border.Neutral.Default}`,
-                      color: Colors.Text.Neutral.Default,
-                      fontSize: "13px",
-                      lineHeight: "1.5",
-                      whiteSpace: "pre-wrap",
-                      wordBreak: "break-word",
-                      fontFamily: "monospace",
-                      overflow: "auto",
-                      maxHeight: "calc(85vh - 120px)",
-                    }}
-                  >
-                    {viewerContent}
-                  </pre>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
       </Page.Main>
     </Page>
   );

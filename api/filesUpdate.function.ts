@@ -31,7 +31,10 @@ export default async function (payload: UpdatePayload) {
       id: payload.id,
     })) as DocumentResponse;
 
-    const version = doc.metadata?.version || doc.version || "";
+    const version = doc.metadata?.version || doc.version;
+    if (!version) {
+      throw new Error(`Unable to retrieve version for file ${payload.id} — cannot safely update`);
+    }
     console.log(`Document ${payload.id} has version: ${version}`);
 
     await documentsClient.updateDocument({

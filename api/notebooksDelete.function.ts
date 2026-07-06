@@ -28,7 +28,10 @@ export default async function (payload: { id: string }) {
     })) as DocumentResponse;
 
     // The version is in metadata.version (from getDocument response)
-    const version = doc.metadata?.version || doc.version || "";
+    const version = doc.metadata?.version || doc.version;
+    if (!version) {
+      throw new Error(`Unable to retrieve version for notebook ${payload.id} — cannot safely delete`);
+    }
     console.log(`Document ${payload.id} has version: ${version}`);
 
     await documentsClient.deleteDocument({
