@@ -11,6 +11,24 @@ A Dynatrace App providing file management utilities. Built with React and TypeSc
 - **Lookup Tables** - Manage lookup files in Dynatrace Grail (upload, download, delete)
 - **Documents** - Manage all other document types (upload, export, visibility control, delete)
 
+## Permissions
+
+This app requires the following OAuth scopes, approved by a Dynatrace environment admin at install time:
+
+| Scope | Purpose |
+|-------|---------|
+| `document:documents:read` | View/export notebooks, dashboards, documents |
+| `document:documents:write` | Upload files; toggle visibility |
+| `document:documents:delete` | Delete notebooks, dashboards, documents |
+| `document:environment-shares:read` | Display share URLs |
+| `document:environment-shares:write` | Generate share links |
+| `document:environment-shares:delete` | Revoke share links |
+| `storage:files:read` | Browse/download lookup files |
+| `storage:files:write` | Upload lookup files |
+| `storage:files:delete` | Delete lookup files |
+
+See [docs/USAGE.md](docs/USAGE.md#permissions) for the minimum scope set for read-only use.
+
 ## Quick Start
 
 ```bash

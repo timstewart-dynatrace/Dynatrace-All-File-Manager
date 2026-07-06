@@ -30,7 +30,7 @@ npm install
    - Sprint: `https://xzj8412h.sprint.apps.dynatracelabs.com/`
    - Production: `https://yhu28601.apps.dynatrace.com/`
 
-2. Ensure OAuth scopes are configured (see [Architecture](.claude/rules/architecture.md))
+2. Ensure OAuth scopes are configured (see [Permissions](#permissions) below)
 
 ### Running the App
 
@@ -44,6 +44,28 @@ npm run build
 # Deploy to Dynatrace environment
 npm run deploy
 ```
+
+## Permissions
+
+The app requests the following OAuth scopes when installed. A Dynatrace environment admin must approve these scopes. Features that require a scope that has not been granted will silently fail or show empty results.
+
+| Scope | Features enabled |
+|-------|-----------------|
+| `document:documents:read` | View and export notebooks, dashboards, documents |
+| `document:documents:write` | Upload files; toggle public/private visibility |
+| `document:documents:delete` | Delete notebooks, dashboards, documents |
+| `document:environment-shares:read` | Display existing share URLs |
+| `document:environment-shares:write` | Generate share links |
+| `document:environment-shares:delete` | Revoke share links |
+| `storage:files:read` | Browse and download lookup files |
+| `storage:files:write` | Upload lookup files to Grail |
+| `storage:files:delete` | Delete lookup files from Grail |
+
+**Minimum scopes for read-only use:** `document:documents:read` + `storage:files:read`
+
+**Full access requires all scopes above.**
+
+> Scopes are declared in `app.config.json` and granted at install time via the Dynatrace App management UI.
 
 ## Features
 

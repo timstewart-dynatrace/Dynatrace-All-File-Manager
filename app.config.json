@@ -9,40 +9,32 @@
     "icon": "ui/assets/app-icon.svg",
     "scopes": [
       {
-        "name": "storage:logs:read",
-        "comment": "default template"
-      },
-      {
-        "name": "storage:buckets:read",
-        "comment": "default template"
-      },
-      {
         "name": "document:documents:read",
-        "comment": "Read notebooks via Document API"
+        "comment": "View and export notebooks, dashboards, and documents"
       },
       {
         "name": "document:documents:write",
-        "comment": "Create notebooks via Document API"
+        "comment": "Upload notebooks, dashboards, and documents; toggle visibility"
       },
       {
         "name": "document:documents:delete",
-        "comment": "Delete notebooks via Document API"
+        "comment": "Delete notebooks, dashboards, and documents"
       },
       {
         "name": "document:environment-shares:read",
-        "comment": "Read environment shares for documents"
+        "comment": "View existing share links for notebooks, dashboards, and documents"
       },
       {
         "name": "document:environment-shares:write",
-        "comment": "Create environment shares for documents"
+        "comment": "Generate share links for notebooks, dashboards, and documents"
       },
       {
         "name": "document:environment-shares:delete",
-        "comment": "Delete environment shares for documents"
+        "comment": "Revoke share links for notebooks, dashboards, and documents"
       },
       {
         "name": "storage:files:read",
-        "comment": "Read lookup files from Grail"
+        "comment": "Browse and download lookup files from Grail"
       },
       {
         "name": "storage:files:write",

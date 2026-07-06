@@ -86,19 +86,19 @@ dt-file-manager/
 
 ## OAuth Scopes
 
-Configured in `app.config.json`:
+Configured in `app.config.json`. All scopes are actively used — no unused template scopes remain.
 
-- `storage:logs:read` - Read log data
-- `storage:buckets:read` - Read bucket data
-- `document:documents:read` - Read notebooks/dashboards via Document API
-- `document:documents:write` - Create/update notebooks/dashboards via Document API
-- `document:documents:delete` - Delete notebooks/dashboards via Document API
-- `document:environment-shares:read` - Read environment shares for documents
-- `document:environment-shares:write` - Create environment shares for documents
-- `document:environment-shares:delete` - Delete environment shares for documents
-- `storage:files:read` - Read lookup files from Grail
-- `storage:files:write` - Upload lookup files to Grail
-- `storage:files:delete` - Delete lookup files from Grail
+| Scope | Used by |
+|-------|---------|
+| `document:documents:read` | All list/export operations across Notebooks, Dashboards, Documents |
+| `document:documents:write` | Upload and visibility toggle across Notebooks, Dashboards, Documents |
+| `document:documents:delete` | Delete operations across Notebooks, Dashboards, Documents |
+| `document:environment-shares:read` | Share URL display in all document managers |
+| `document:environment-shares:write` | Share link generation in all document managers |
+| `document:environment-shares:delete` | Share link revocation (reserved, not yet exposed in UI) |
+| `storage:files:read` | Browse and download in Lookup File Manager |
+| `storage:files:write` | Upload in Lookup File Manager |
+| `storage:files:delete` | Delete in Lookup File Manager |
 
 ## Components
 
