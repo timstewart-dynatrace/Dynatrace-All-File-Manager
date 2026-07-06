@@ -17,6 +17,9 @@ interface UpdatePayload {
   isPrivate?: boolean;
 }
 
+// Document API's updateDocument: "The name of this document ... Maximum length is 128 characters."
+const MAX_NAME_LENGTH = 128;
+
 export default async function (payload: UpdatePayload) {
   try {
     if (!payload.id) {
@@ -37,13 +40,24 @@ export default async function (payload: UpdatePayload) {
       };
     }
 
-    if (payload.name !== undefined && payload.name.trim().length === 0) {
-      return {
-        statusCode: 400,
-        body: {
-          message: "Notebook name cannot be empty",
-        },
-      };
+    if (payload.name !== undefined) {
+      const trimmedName = payload.name.trim();
+      if (trimmedName.length === 0) {
+        return {
+          statusCode: 400,
+          body: {
+            message: "Notebook name cannot be empty",
+          },
+        };
+      }
+      if (trimmedName.length > MAX_NAME_LENGTH) {
+        return {
+          statusCode: 400,
+          body: {
+            message: `Notebook name exceeds maximum length of ${MAX_NAME_LENGTH} characters (got ${trimmedName.length})`,
+          },
+        };
+      }
     }
 
     // First get the document to obtain optimisticLockingVersion

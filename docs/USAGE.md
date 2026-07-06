@@ -98,6 +98,7 @@ Navigate to `/notebook-manager` to manage Dynatrace notebooks.
 - **Bulk Upload** - Upload multiple notebook JSON files at once
 - **Export Selected** - Download notebooks as JSON files (includes metadata + content)
 - **Rename** - Click the edit icon next to a notebook's name to rename it inline (owners only)
+- **Bulk Prefix** - Select multiple notebooks you own, enter a prefix, and add it to the front of all their names at once. Shows a preview of the old → new names before applying. Any notebook whose new name would exceed 128 characters is skipped (not the whole batch) and reported as a failure.
 - **Make Private** - Set visibility to private (only you can see)
 - **Make Public** - Set visibility to public (warning: anyone can see)
 - **Delete Selected** - Bulk delete with confirmation
@@ -105,6 +106,7 @@ Navigate to `/notebook-manager` to manage Dynatrace notebooks.
 
 **Tips:**
 - Only document owners can modify visibility, rename, delete, or create share links
+- Names (single rename or bulk prefix) must be non-empty and 128 characters or fewer — the Document API's limit
 - Use the filter to search by name or owner
 - Click column headers to sort
 

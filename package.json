@@ -21,7 +21,7 @@
     "info": "dt-app info",
     "help": "dt-app help",
     "lint": "eslint .",
-    "test": "tsx --test ui/app/utils/__tests__/csv.test.ts ui/app/utils/__tests__/document.test.ts",
+    "test": "tsx --test ui/app/utils/__tests__/csv.test.ts ui/app/utils/__tests__/document.test.ts ui/app/utils/__tests__/validation.test.ts",
     "check:version": "node scripts/check-version-sync.mjs",
     "predeploy": "node scripts/check-version-sync.mjs"
   },

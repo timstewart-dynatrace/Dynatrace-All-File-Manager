@@ -23,6 +23,7 @@ import {
   XmarkIcon,
 } from "@dynatrace/strato-icons";
 import Colors from "@dynatrace/strato-design-tokens/colors";
+import { MAX_DOCUMENT_NAME_LENGTH, validateDocumentName } from "../utils/validation";
 
 export interface DocumentManagerConfig {
   entityName: string;        // "Notebook" | "Dashboard"
@@ -145,6 +146,8 @@ export const DocumentManager = ({ config }: DocumentManagerProps) => {
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [renaming, setRenaming] = useState(false);
+  const [prefixValue, setPrefixValue] = useState("");
+  const [prefixing, setPrefixing] = useState(false);
 
   // Filter and sort documents
   const filteredAndSortedDocuments = useMemo(() => {
@@ -733,10 +736,11 @@ export const DocumentManager = ({ config }: DocumentManagerProps) => {
 
   const handleSaveRename = async (id: string) => {
     const trimmed = renameValue.trim();
-    if (!trimmed) {
+    const validation = validateDocumentName(trimmed);
+    if (!validation.valid) {
       showToast({
-        title: "Name cannot be empty",
-        message: `Please enter a name for the ${entityNameLower}`,
+        title: "Invalid name",
+        message: validation.error || `Please enter a valid name for the ${entityNameLower}`,
         type: "warning",
       });
       return;
@@ -793,6 +797,143 @@ export const DocumentManager = ({ config }: DocumentManagerProps) => {
     }
   };
 
+  const handleBulkPrefix = async () => {
+    if (!prefixValue) {
+      showToast({
+        title: "Prefix required",
+        message: `Enter a prefix to add to the selected ${entityNamePluralLower}`,
+        type: "warning",
+      });
+      return;
+    }
+
+    if (selectedDocuments.size === 0) {
+      showToast({
+        title: `No ${entityNamePluralLower} selected`,
+        message: `Please select at least one ${entityNameLower} to prefix`,
+        type: "warning",
+      });
+      return;
+    }
+
+    const documentsToUpdate = documents.filter((n) => selectedDocuments.has(n.id));
+    const previewList = documentsToUpdate
+      .map((n) => {
+        const current = n.displayName || "Unnamed";
+        return `  • ${current} → ${prefixValue}${current}`;
+      })
+      .join("\n");
+
+    if (
+      !confirm(
+        `Add prefix "${prefixValue}" to ${selectedDocuments.size} ${entityNameLower}(s)?\n\n${previewList}`
+      )
+    ) {
+      return;
+    }
+
+    setPrefixing(true);
+    setUpdateResults([]);
+    let successCount = 0;
+    let failCount = 0;
+    const successNames: string[] = [];
+    const failedNames: string[] = [];
+    const results: UpdateResult[] = [];
+
+    for (const document of documentsToUpdate) {
+      const currentName = document.displayName || "";
+      const newName = `${prefixValue}${currentName}`;
+      const validation = validateDocumentName(newName);
+
+      if (!validation.valid) {
+        failCount++;
+        failedNames.push(currentName);
+        results.push({
+          name: currentName,
+          id: document.id,
+          success: false,
+          message: `Skipped: ${validation.error}`,
+        });
+        continue;
+      }
+
+      try {
+        console.log(`Prefixing ${entityNameLower}: ${currentName} -> ${newName} (${document.id})`);
+        const response = await fetch(apiUpdate, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ id: document.id, name: newName }),
+        });
+
+        const responseData = (await response
+          .json()
+          .catch(() => ({}))) as ApiResponse;
+
+        if (
+          response.ok &&
+          responseData.body?.message?.includes("successfully")
+        ) {
+          successCount++;
+          successNames.push(currentName);
+          results.push({
+            name: newName,
+            id: (responseData.body?.id as string | undefined) || document.id,
+            success: true,
+            message: `Renamed to "${newName}"`,
+          });
+        } else {
+          failCount++;
+          failedNames.push(currentName);
+          results.push({
+            name: currentName,
+            id: document.id,
+            success: false,
+            message: (responseData.body?.message as string | undefined) || `Failed to prefix ${entityNameLower}`,
+          });
+        }
+      } catch (error) {
+        failCount++;
+        failedNames.push(currentName);
+        results.push({
+          name: currentName,
+          id: document.id,
+          success: false,
+          message: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+    }
+
+    setPrefixing(false);
+    setSelectedDocuments(new Set());
+    setPrefixValue("");
+    setUpdateResults(results);
+
+    if (failCount === 0 && successCount > 0) {
+      showToast({
+        title: "Prefix applied",
+        message: `Successfully renamed: ${successNames.join(", ")}`,
+        type: "success",
+      });
+    } else if (successCount === 0) {
+      showToast({
+        title: "Prefix failed",
+        message: `Failed: ${failedNames.join(", ")}`,
+        type: "critical",
+      });
+    } else {
+      showToast({
+        title: "Prefix completed with errors",
+        message: `Renamed: ${successNames.join(", ")}. Failed: ${failedNames.join(", ")}`,
+        type: "warning",
+      });
+    }
+
+    console.log(`Refreshing ${entityNameLower} list after bulk prefix...`);
+    await loadDocuments();
+  };
+
   // Wrapper functions for async handlers
   const onRefreshClick = () => {
     setDeleteResults([]);
@@ -819,6 +960,10 @@ export const DocumentManager = ({ config }: DocumentManagerProps) => {
 
   const onMakePublicClick = () => {
     void handleBulkToggleVisibility(false);
+  };
+
+  const onBulkPrefixClick = () => {
+    void handleBulkPrefix();
   };
 
   const generateShareUrl = (shareId: string): string => {
@@ -1186,6 +1331,43 @@ export const DocumentManager = ({ config }: DocumentManagerProps) => {
                 </Button>
               </Flex>
 
+              <Flex gap={16} alignItems="center" flexWrap="wrap">
+                <input
+                  type="text"
+                  placeholder="Prefix to add..."
+                  value={prefixValue}
+                  maxLength={MAX_DOCUMENT_NAME_LENGTH}
+                  disabled={prefixing}
+                  onChange={(e) => setPrefixValue(e.target.value)}
+                  style={{
+                    padding: "10px 12px",
+                    border: `1px solid ${Colors.Border.Neutral.Default}`,
+                    borderRadius: "4px",
+                    backgroundColor: "transparent",
+                    color: Colors.Text.Neutral.Default,
+                    fontSize: "14px",
+                    width: "100%",
+                    maxWidth: "240px",
+                  }}
+                />
+                <Button
+                  variant="default"
+                  onClick={onBulkPrefixClick}
+                  disabled={
+                    prefixing ||
+                    !prefixValue ||
+                    selectedDocuments.size === 0 ||
+                    hasNonOwnedSelected
+                  }
+                  title={hasNonOwnedSelected ? `Cannot rename ${entityNamePluralLower} you don't own` : `Add this prefix to the names of selected ${entityNamePluralLower}`}
+                >
+                  <Button.Prefix>
+                    <EditIcon />
+                  </Button.Prefix>
+                  {prefixing ? "Applying..." : `Add Prefix to Selected (${selectedDocuments.size})`}
+                </Button>
+              </Flex>
+
               {updateResults.length > 0 && (
                 <div
                   style={{
@@ -1518,7 +1700,7 @@ export const DocumentManager = ({ config }: DocumentManagerProps) => {
                                     type="text"
                                     autoFocus
                                     value={renameValue}
-                                    maxLength={128}
+                                    maxLength={MAX_DOCUMENT_NAME_LENGTH}
                                     disabled={renaming}
                                     onChange={(e) => setRenameValue(e.target.value)}
                                     onKeyDown={(e) => {
